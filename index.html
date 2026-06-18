@@ -256,6 +256,9 @@
         <input type="text" id="cfg-apikey" placeholder="sk-ant-...">
       </div>
       <button class="btn" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
+      <button onclick="testConnection()" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r-md);border:1.5px solid var(--bd2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--font);color:var(--tx2)">
+        <i class="ti ti-plug"></i> Probar conexión con Apps Script
+      </button>
       <div class="st" id="cfg-st"></div>
     </div>
 
@@ -328,6 +331,34 @@ function saveConfig() {
   setTimeout(() => switchTab('dashboard'), 1200);
 }
 
+async function testConnection() {
+  const st = document.getElementById('cfg-st');
+  const url = document.getElementById('cfg-script').value.trim();
+  if (!url) { st.className='st fail'; st.textContent='⚠️ Primero pega la URL del Apps Script.'; return; }
+  st.className='st load'; st.textContent='Probando conexión...';
+  try {
+    const res = await fetch(url + '?action=getStats', { redirect: 'follow' });
+    if (!res.ok) throw new Error('El servidor respondió con error ' + res.status);
+    const text = await res.text();
+    const data = JSON.parse(text);
+    if (data.ok !== undefined) {
+      st.className='st ok2';
+      st.textContent='✓ Conexión exitosa con el Apps Script. Todo funciona correctamente.';
+    } else {
+      st.className='st fail';
+      st.textContent='⚠️ El Apps Script respondió pero con formato inesperado. ¿Instalaste el apps_script_v2.js?';
+    }
+  } catch(err) {
+    st.className='st fail';
+    let msg = err.message || '';
+    if (msg.includes('Failed to fetch') || msg.includes('Load failed'))
+      msg = 'No se pudo conectar. Verifica que la URL sea correcta y que el script esté publicado como "Cualquier persona".';
+    else if (msg.includes('JSON'))
+      msg = 'El Apps Script respondió pero no es el v2. Copia el código de apps_script_v2.js y publica una Nueva implementación.';
+    st.textContent = '⚠️ ' + msg;
+  }
+}
+
 function updateSyncBadge() {
   const b = document.getElementById('sync-badge');
   if (isConfigured()) { b.className = 'badge ok'; b.textContent = 'Conectado'; }
@@ -358,13 +389,23 @@ function nowDateTime() {
 
 async function callScript(payload) {
   const url = getScriptURL();
-  if (!url) throw new Error('Apps Script no configurado');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  });
-  return res.json();
+  if (!url) throw new Error('Apps Script no configurado. Ve a Config y pega la URL.');
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
+    if (!res.ok) throw new Error('El servidor respondió con error ' + res.status + '. Verifica que el Apps Script esté publicado correctamente.');
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { throw new Error('Respuesta inválida del servidor. Verifica que el Apps Script v2 esté publicado (no el original).'); }
+  } catch(err) {
+    if (err.message.includes('Failed to fetch') || err.message.includes('Load failed') || err.message.includes('NetworkError'))
+      throw new Error('No se pudo conectar al Apps Script. Verifica: 1) La URL en Config es correcta, 2) El script está publicado como "Cualquier persona".');
+    throw err;
+  }
 }
 
 async function callScriptGET(action) {
@@ -420,12 +461,16 @@ function handleFile(input) {
           imageBase64: base64,
           imageMime: file.type || 'image/jpeg',
           apiKey: getAPIKey()
-        })
+        }),
+        redirect: 'follow'
       });
 
-      if (!res.ok) throw new Error('Error de conexión con el servidor (' + res.status + '). Verifica la URL del Apps Script en Config.');
+      if (!res.ok) throw new Error('El servidor respondió con error ' + res.status + '. Verifica que el Apps Script v2 esté publicado.');
 
-      const data = await res.json();
+      const rawResp = await res.text();
+      let data;
+      try { data = JSON.parse(rawResp); }
+      catch(e) { throw new Error('El Apps Script no devolvió JSON válido. Asegúrate de haber publicado el apps_script_v2.js y no el original.'); }
       if (!data.ok) {
         if (data.error && data.error.includes('401')) throw new Error('API Key inválida o vencida. Verifica en Config.');
         if (data.error && data.error.includes('429')) throw new Error('Límite de uso alcanzado. Intenta en unos minutos.');
