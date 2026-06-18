@@ -514,8 +514,15 @@ async function savePOD() {
   try {
     let photoBase64 = '', photoMime = '', photoName = '';
     if (currentFile) {
-      const buf  = await currentFile.arrayBuffer();
-      photoBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      // Convertir a base64 en chunks para evitar "Maximum call stack size exceeded"
+      const buf   = await currentFile.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary  = '';
+      const CHUNK = 8192;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+      }
+      photoBase64 = btoa(binary);
       photoMime   = currentFile.type || 'image/jpeg';
       photoName   = 'POD_' + document.getElementById('f-order').value + '_' + Date.now() + '.' + (currentFile.name.split('.').pop() || 'jpg');
     }
@@ -534,31 +541,47 @@ async function savePOD() {
       photoName
     });
 
-    if (!result.ok) throw new Error(result.error);
+    if (!result.ok) throw new Error(result.error || 'Error desconocido al guardar.');
     st.className = 'st ok2';
     st.textContent = '✓ POD guardado en Sheets · Foto en Drive · ' + nowTime();
-    resetUploadForm();
+    // Esperar 2 segundos para que el usuario vea el éxito, luego limpiar para el próximo POD
+    setTimeout(() => {
+      resetUploadForm();
+      st.className = 'st ok2';
+      st.textContent = '✓ Listo para cargar otro POD';
+      setTimeout(() => { st.textContent = ''; st.className = 'st'; }, 3000);
+    }, 2000);
   } catch(err) {
     st.className = 'st fail';
-    st.textContent = 'Error: ' + err.message;
+    let msg = err.message || 'Error desconocido';
+    if (msg.includes('Failed to fetch') || msg.includes('Load failed'))
+      msg = 'Error de conexión con el servidor. Verifica el Apps Script.';
+    st.textContent = '⚠️ ' + msg;
     btn.disabled = false;
   }
 }
 
 function resetUploadForm() {
   currentFile = null;
+  // Limpiar el input de archivo para que se pueda cargar otra foto
+  const fileInput = document.getElementById('file-input');
+  fileInput.value = '';
   document.getElementById('drop-zone').classList.remove('done');
   document.getElementById('drop-lbl').textContent = 'Haz clic o arrastra la foto del POD';
   document.getElementById('photo-preview').style.display = 'none';
   document.getElementById('preview-img').src = '';
+  // Restaurar campos a solo lectura y vacíos
   ['f-order','f-client','f-carrier','f-qty','f-date','f-time'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
     el.setAttribute('readonly','');
+    el.placeholder = id === 'f-time' ? '' : 'Extraído de la foto...';
   });
   document.getElementById('f-status').value = 'Pendiente cruce';
   document.getElementById('f-user').value = '';
   document.getElementById('btn-save').disabled = true;
+  document.getElementById('ai-st').textContent = '';
+  document.getElementById('ai-st').className = 'st';
 }
 
 // ===== SUBIR DB DIARIA =====
