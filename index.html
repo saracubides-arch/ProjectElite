@@ -129,6 +129,11 @@
 
   <!-- ===== CARGAR POD ===== -->
   <div id="tab-upload" class="sec">
+    <div id="apikey-warning" style="background:#FFF3CD;border:1px solid #FFCA2C;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:#664D03;align-items:center;gap:10px;display:none">
+      <i class="ti ti-alert-triangle" style="font-size:20px;color:#CC8A00;flex-shrink:0"></i>
+      <b>Falta la API Key.</b>&nbsp; Ve a la pestaña <b>Config</b>, pega tu Anthropic API Key y guarda. Sin ella la extracción automática no funciona, pero puedes ingresar los datos manualmente.
+      <button onclick="switchTab('config')" style="margin-left:8px;padding:5px 12px;background:#534AB7;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Ir a Config →</button>
+    </div>
     <div class="card">
       <p class="stitle"><i class="ti ti-camera"></i> Nueva foto de POD</p>
       <div class="zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
@@ -304,6 +309,14 @@ function getScriptURL() { return CFG.scriptURL || ''; }
 function getAPIKey()    { return CFG.apiKey    || ''; }
 function isConfigured() { return !!CFG.scriptURL && !!CFG.apiKey; }
 
+
+function unlockFields() {
+  ["f-order","f-client","f-carrier","f-qty"].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = ""; el.removeAttribute("readonly"); el.placeholder = "Escribe aqui...";
+  });
+}
+
 function saveConfig() {
   CFG.scriptURL = document.getElementById('cfg-script').value.trim();
   CFG.apiKey    = document.getElementById('cfg-apikey').value.trim();
@@ -311,6 +324,7 @@ function saveConfig() {
   document.getElementById('cfg-st').className = 'st ok2';
   document.getElementById('cfg-st').textContent = '✓ Configuración guardada correctamente';
   updateSyncBadge();
+  const w = document.getElementById('apikey-warning'); if(w) w.style.display='none';
   setTimeout(() => switchTab('dashboard'), 1200);
 }
 
@@ -328,6 +342,10 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'dashboard') refreshDash();
   if (name === 'records')   loadRecords();
+  if (name === 'upload') {
+    const w = document.getElementById('apikey-warning');
+    if (w) w.style.display = !getAPIKey() ? 'flex' : 'none';
+  }
 }
 
 // ===== HELPERS =====
@@ -372,8 +390,18 @@ function handleFile(input) {
   document.getElementById('photo-preview').style.display = 'block';
 
   const st = document.getElementById('ai-st');
+
+  // ── Verificar API Key antes de intentar ──────────────────
+  if (!getAPIKey()) {
+    st.className = 'st fail';
+    st.innerHTML = '⚠️ Falta la API Key. Ve a la pestaña <b>Config</b>, pega tu Anthropic API Key y guarda.';
+    unlockFields();
+    document.getElementById('btn-save').disabled = false;
+    return;
+  }
+
   st.className = 'st load';
-  st.textContent = 'Analizando foto con IA...';
+  st.textContent = 'Analizando foto con la APP...';
   document.getElementById('btn-save').disabled = true;
 
   const reader = new FileReader();
@@ -391,8 +419,20 @@ function handleFile(input) {
           ]}]
         })
       });
+
+      // Verificar respuesta HTTP
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const msg = errBody?.error?.message || 'Error ' + res.status;
+        if (res.status === 401) throw new Error('API Key inválida o vencida. Verifica en Config.');
+        if (res.status === 429) throw new Error('Límite de uso alcanzado. Intenta en unos minutos.');
+        throw new Error(msg);
+      }
+
       const data = await res.json();
-      const parsed = JSON.parse(data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim());
+      const rawText = data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(rawText);
+
       document.getElementById('f-order').value   = parsed.order_number || 'No detectado';
       document.getElementById('f-client').value  = parsed.client       || 'No detectado';
       document.getElementById('f-carrier').value = parsed.carrier      || 'No detectado';
@@ -401,14 +441,12 @@ function handleFile(input) {
       st.className = 'st ok2';
       st.textContent = '✓ Datos extraídos · Hora: ' + document.getElementById('f-time').value;
       document.getElementById('btn-save').disabled = false;
+
     } catch(err) {
-      ['f-order','f-client','f-carrier','f-qty'].forEach(id => {
-        const el = document.getElementById(id);
-        el.value = ''; el.removeAttribute('readonly');
-      });
+      unlockFields();
       document.getElementById('f-date').value = new Date().toLocaleDateString('es');
       st.className = 'st fail';
-      st.textContent = 'No se pudo extraer automáticamente. Ingresa los datos manualmente.';
+      st.textContent = '⚠️ ' + (err.message || 'Error al analizar la foto. Ingresa los datos manualmente.');
       document.getElementById('btn-save').disabled = false;
     }
   };
