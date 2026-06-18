@@ -408,30 +408,30 @@ function handleFile(input) {
   reader.onload = async e => {
     const base64 = e.target.result.split(',')[1];
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      // Llamada a través del Apps Script (evita bloqueo CORS del navegador)
+      const scriptUrl = getScriptURL();
+      if (!scriptUrl) throw new Error('Falta la URL del Apps Script. Configúrala en la pestaña Config.');
+
+      const res = await fetch(scriptUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': getAPIKey(), 'anthropic-version': '2023-06-01' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 500,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 }},
-            { type: 'text', text: 'Analiza este POD de entrega de flores. Responde SOLO en JSON sin backticks: {"order_number":"...","client":"...","carrier":"...","quantity":"...","date":"..."}. Si no encuentras un valor usa "No detectado".' }
-          ]}]
+          action: 'extractPOD',
+          imageBase64: base64,
+          imageMime: file.type || 'image/jpeg',
+          apiKey: getAPIKey()
         })
       });
 
-      // Verificar respuesta HTTP
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        const msg = errBody?.error?.message || 'Error ' + res.status;
-        if (res.status === 401) throw new Error('API Key inválida o vencida. Verifica en Config.');
-        if (res.status === 429) throw new Error('Límite de uso alcanzado. Intenta en unos minutos.');
-        throw new Error(msg);
-      }
+      if (!res.ok) throw new Error('Error de conexión con el servidor (' + res.status + '). Verifica la URL del Apps Script en Config.');
 
       const data = await res.json();
-      const rawText = data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-      const parsed = JSON.parse(rawText);
+      if (!data.ok) {
+        if (data.error && data.error.includes('401')) throw new Error('API Key inválida o vencida. Verifica en Config.');
+        if (data.error && data.error.includes('429')) throw new Error('Límite de uso alcanzado. Intenta en unos minutos.');
+        throw new Error(data.error || 'Error al procesar la imagen.');
+      }
+      const parsed = data.result;
 
       document.getElementById('f-order').value   = parsed.order_number || 'No detectado';
       document.getElementById('f-client').value  = parsed.client       || 'No detectado';
@@ -446,7 +446,13 @@ function handleFile(input) {
       unlockFields();
       document.getElementById('f-date').value = new Date().toLocaleDateString('es');
       st.className = 'st fail';
-      st.textContent = '⚠️ ' + (err.message || 'Error al analizar la foto. Ingresa los datos manualmente.');
+      let errMsg = err.message || 'Error desconocido.';
+      // Traducir errores técnicos en inglés
+      if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch failed') || errMsg.includes('Load failed') || errMsg.includes('NetworkError'))
+        errMsg = 'Error de conexión. Verifica tu internet y que el Apps Script esté publicado correctamente.';
+      if (errMsg.includes('CORS') || errMsg.includes('cross-origin'))
+        errMsg = 'Error de permisos de servidor. Verifica que el Apps Script esté publicado como "Cualquier persona".';
+      st.textContent = '⚠️ ' + errMsg;
       document.getElementById('btn-save').disabled = false;
     }
   };
