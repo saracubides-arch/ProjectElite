@@ -303,7 +303,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 // ===== CONFIG =====
+// ── CONFIGURACIÓN FIJA ─────────────────────────────────────
+// Estos valores se cargan automáticamente en cualquier dispositivo.
+// Si están vacíos, el usuario los ingresa en la pestaña Config.
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbydAD-H9kTFUo2H-NxWaJKNvbKkh5-hrrBhP2F0t7e3j2Dyh08mfg-H92Qbw1Ho9zY/exec';
+const DEFAULT_API_KEY    = '';   // <-- Pega aquí tu API Key para que no se pida nunca
+// ───────────────────────────────────────────────────────────
+
 let CFG = JSON.parse(localStorage.getItem('pods_cfg') || '{}');
+// Si no hay config guardada, usar los valores por defecto
+if (!CFG.scriptURL && DEFAULT_SCRIPT_URL) CFG.scriptURL = DEFAULT_SCRIPT_URL;
+if (!CFG.apiKey    && DEFAULT_API_KEY)    CFG.apiKey    = DEFAULT_API_KEY;
 let allPods = [];
 let dbRows  = [];
 let hourChart = null;
@@ -761,6 +771,10 @@ function exportCSV() {
 // ===== INIT =====
 document.getElementById('cfg-script').value = CFG.scriptURL || '';
 document.getElementById('cfg-apikey').value = CFG.apiKey    || '';
+if (CFG.scriptURL && !CFG.apiKey) {
+  const st = document.getElementById('cfg-st');
+  if (st) { st.className = 'st fail'; st.textContent = '⚠️ Falta la API Key. Pégala aquí y guarda.'; }
+}
 updateSyncBadge();
 if (isConfigured()) refreshDash();
 else {
