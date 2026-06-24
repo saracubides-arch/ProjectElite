@@ -166,6 +166,9 @@
         <button class="btn" id="btn-save" disabled onclick="savePOD()">
           <i class="ti ti-cloud-upload"></i> Guardar en Drive y Sheets
         </button>
+        <button id="btn-reset" onclick="resetUploadForm()" style="display:none;margin-top:8px;width:100%;padding:9px;border-radius:var(--r-md);border:1.5px solid var(--bd2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--font);color:var(--tx2)">
+          <i class="ti ti-refresh"></i> Limpiar y cargar otro POD
+        </button>
       </div>
     </div>
   </div>
@@ -311,9 +314,12 @@ const DEFAULT_API_KEY    = 'sk-ant-api03-aDD53YQ2kE_gENqlS5iZuZe9BaiYs0JAVJpwPjb
 // ───────────────────────────────────────────────────────────
 
 let CFG = JSON.parse(localStorage.getItem('pods_cfg') || '{}');
-// Si no hay config guardada, usar los valores por defecto
-if (!CFG.scriptURL && DEFAULT_SCRIPT_URL) CFG.scriptURL = DEFAULT_SCRIPT_URL;
-if (!CFG.apiKey    && DEFAULT_API_KEY)    CFG.apiKey    = DEFAULT_API_KEY;
+// Los valores DEFAULT siempre tienen prioridad si están definidos en el código
+// Esto asegura que funcione en cualquier dispositivo sin configuración manual
+if (DEFAULT_SCRIPT_URL) CFG.scriptURL = DEFAULT_SCRIPT_URL;
+if (DEFAULT_API_KEY)    CFG.apiKey    = DEFAULT_API_KEY;
+// Guardar inmediatamente para que Config muestre los valores correctos
+localStorage.setItem('pods_cfg', JSON.stringify(CFG));
 let allPods = [];
 let dbRows  = [];
 let hourChart = null;
@@ -385,7 +391,7 @@ function switchTab(name) {
   if (name === 'records')   loadRecords();
   if (name === 'upload') {
     const w = document.getElementById('apikey-warning');
-    if (w) w.style.display = !getAPIKey() ? 'flex' : 'none';
+    if (w) w.style.display = (getAPIKey() || DEFAULT_API_KEY) ? 'none' : 'flex';
   }
 }
 
@@ -434,6 +440,7 @@ function handleFile(input) {
   currentFile = file;
   document.getElementById('drop-zone').classList.add('done');
   document.getElementById('drop-lbl').textContent = file.name;
+  document.getElementById('btn-reset').style.display = 'block';
   document.getElementById('f-time').value = nowTime();
 
   const preview = document.getElementById('preview-img');
@@ -509,6 +516,7 @@ function handleFile(input) {
         errMsg = 'Error de permisos de servidor. Verifica que el Apps Script esté publicado como "Cualquier persona".';
       st.textContent = '⚠️ ' + errMsg;
       document.getElementById('btn-save').disabled = false;
+      document.getElementById('btn-reset').style.display = 'block';
     }
   };
   reader.readAsDataURL(file);
@@ -573,25 +581,40 @@ async function savePOD() {
 
 function resetUploadForm() {
   currentFile = null;
-  // Limpiar el input de archivo para que se pueda cargar otra foto
-  const fileInput = document.getElementById('file-input');
-  fileInput.value = '';
-  document.getElementById('drop-zone').classList.remove('done');
+  // Limpiar input de archivo
+  try {
+    const fileInput = document.getElementById('file-input');
+    fileInput.value = '';
+    // Forzar reset del input creando uno nuevo (necesario en algunos navegadores)
+    const newInput = fileInput.cloneNode(true);
+    newInput.addEventListener('change', function() { handleFile(this); });
+    fileInput.parentNode.replaceChild(newInput, fileInput);
+  } catch(e) {}
+  // Reset zona de carga
+  const zone = document.getElementById('drop-zone');
+  zone.classList.remove('done');
   document.getElementById('drop-lbl').textContent = 'Haz clic o arrastra la foto del POD';
+  // Reset preview
   document.getElementById('photo-preview').style.display = 'none';
   document.getElementById('preview-img').src = '';
-  // Restaurar campos a solo lectura y vacíos
+  // Reset campos — todos readonly y vacíos
   ['f-order','f-client','f-carrier','f-qty','f-date','f-time'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
-    el.setAttribute('readonly','');
+    el.setAttribute('readonly', '');
+    el.style.color = '';
     el.placeholder = id === 'f-time' ? '' : 'Extraído de la foto...';
   });
   document.getElementById('f-status').value = 'Pendiente cruce';
   document.getElementById('f-user').value = '';
   document.getElementById('btn-save').disabled = true;
-  document.getElementById('ai-st').textContent = '';
-  document.getElementById('ai-st').className = 'st';
+  // Reset mensaje de estado
+  const st = document.getElementById('ai-st');
+  st.textContent = '';
+  st.className = 'st';
+  // Reset warning banner
+  const w = document.getElementById('apikey-warning');
+  if (w && (getAPIKey() || DEFAULT_API_KEY)) w.style.display = 'none';
 }
 
 // ===== SUBIR DB DIARIA =====
@@ -771,6 +794,11 @@ function exportCSV() {
 // ===== INIT =====
 document.getElementById('cfg-script').value = CFG.scriptURL || '';
 document.getElementById('cfg-apikey').value = CFG.apiKey    || '';
+// Limpiar mensajes de error de API Key si ya está configurada
+if (CFG.apiKey) {
+  const w = document.getElementById('apikey-warning');
+  if (w) w.style.display = 'none';
+}
 if (CFG.scriptURL && !CFG.apiKey) {
   const st = document.getElementById('cfg-st');
   if (st) { st.className = 'st fail'; st.textContent = '⚠️ Falta la API Key. Pégala aquí y guarda.'; }
