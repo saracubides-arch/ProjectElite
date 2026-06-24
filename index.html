@@ -1,813 +1,642 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PODs en Línea v3</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg1:#ffffff; --bg2:#f5f5f3; --bg3:#eeede8;
-      --bg-ok:#eaf3de; --bg-warn:#faeeda; --bg-err:#fcebeb; --bg-info:#e6f1fb;
-      --tx1:#1a1a18; --tx2:#5f5e5a; --tx3:#888780;
-      --tx-ok:#3b6d11; --tx-warn:#854f0b; --tx-err:#a32d2d; --tx-info:#185fa5;
-      --bd3:rgba(0,0,0,.10); --bd2:rgba(0,0,0,.18); --bd1:rgba(0,0,0,.28);
-      --bd-ok:#639922; --purple:#534AB7; --purple-dk:#3C3489;
-      --r-md:8px; --r-lg:12px;
-      --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    }
-    @media(prefers-color-scheme:dark){:root{
-      --bg1:#1e1e1c;--bg2:#2a2a27;--bg3:#141412;
-      --bg-ok:#173404;--bg-warn:#412402;--bg-err:#501313;--bg-info:#042c53;
-      --tx1:#f0ede6;--tx2:#b4b2a9;--tx3:#888780;
-      --tx-ok:#c0dd97;--tx-warn:#fac775;--tx-err:#f09595;--tx-info:#85b7eb;
-      --bd3:rgba(255,255,255,.10);--bd2:rgba(255,255,255,.18);--bd1:rgba(255,255,255,.28);
-    }}
-    body{font-family:var(--font);background:var(--bg3);color:var(--tx1);min-height:100vh}
-    .wrap{max-width:800px;margin:0 auto;padding:1.5rem 1rem}
-    input,select,button{font-family:var(--font);font-size:14px;color:var(--tx1)}
-    input[type=text],select{width:100%;height:36px;padding:0 10px;border:0.5px solid var(--bd2);border-radius:var(--r-md);background:var(--bg1);color:var(--tx1)}
-    input:focus,select:focus{outline:none;box-shadow:0 0 0 2px #AFA9EC}
-    input[readonly]{background:var(--bg2)!important;color:var(--tx2)!important}
-    .tab-bar{display:flex;gap:4px;padding:0 0 1rem;border-bottom:0.5px solid var(--bd3);margin-bottom:1.5rem;flex-wrap:wrap}
-    .tab{padding:7px 14px;border-radius:var(--r-md);font-size:13px;cursor:pointer;border:0.5px solid transparent;color:var(--tx2);background:transparent;transition:all .15s}
-    .tab.active{background:var(--bg2);border-color:var(--bd2);color:var(--tx1);font-weight:500}
-    .tab:hover:not(.active){background:var(--bg2)}
-    .sec{display:none}.sec.active{display:block}
-    .card{background:var(--bg1);border:0.5px solid var(--bd3);border-radius:var(--r-lg);padding:1.25rem;margin-bottom:1rem}
-    .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:1.5rem}
-    .m{background:var(--bg2);border-radius:var(--r-md);padding:.9rem}
-    .ml{font-size:11px;color:var(--tx2);margin-bottom:5px}
-    .mv{font-size:22px;font-weight:500}
-    .badge{display:inline-block;font-size:11px;font-weight:500;padding:3px 9px;border-radius:var(--r-md)}
-    .ok{background:var(--bg-ok);color:var(--tx-ok)}
-    .warn{background:var(--bg-warn);color:var(--tx-warn)}
-    .err{background:var(--bg-err);color:var(--tx-err)}
-    .zone{border:1.5px dashed var(--bd2);border-radius:var(--r-lg);padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .15s}
-    .zone:hover{background:var(--bg2)}
-    .zone.done{background:var(--bg-ok);border-color:var(--bd-ok);border-style:solid}
-    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-    .field{display:flex;flex-direction:column;gap:5px}
-    .field label{font-size:12px;color:var(--tx2);font-weight:500}
-    .btn{background:var(--purple);color:#fff;border:none;border-radius:var(--r-md);padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-top:8px}
-    .btn:hover{background:var(--purple-dk)}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .st{font-size:12px;color:var(--tx2);margin-top:8px;min-height:18px}
-    .st.load{color:var(--purple)}.st.ok2{color:var(--tx-ok)}.st.fail{color:var(--tx-err)}
-    table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-    th{text-align:left;font-weight:500;color:var(--tx2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:0 8px 10px}
-    td{padding:9px 8px;border-top:0.5px solid var(--bd3);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    tr:hover td{background:var(--bg2)}
-    .pb{height:6px;border-radius:3px;background:var(--bg2);overflow:hidden;margin-bottom:1.5rem}
-    .pf{height:100%;border-radius:3px;background:var(--purple);transition:width .6s ease}
-    .stitle{font-size:15px;font-weight:500;margin-bottom:1rem}
-    .info-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-info);border-radius:var(--r-md);font-size:12px;color:var(--tx-info);margin-bottom:1rem}
-    .step-box{background:var(--bg2);border-radius:var(--r-lg);padding:1rem 1.25rem;margin-bottom:.75rem;border-left:3px solid var(--purple)}
-    .step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--purple);color:#fff;font-size:12px;font-weight:500;margin-right:8px;flex-shrink:0}
-    code{font-family:monospace;font-size:12px;background:var(--bg2);padding:2px 6px;border-radius:4px;word-break:break-all}
-    @media(max-width:500px){.row2{grid-template-columns:1fr}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PODs en Línea — The Elite Flower</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg1:#fff;--bg2:#f5f5f3;--bg3:#eeede8;
+  --bg-ok:#eaf3de;--bg-warn:#faeeda;--bg-err:#fcebeb;--bg-info:#e6f1fb;
+  --tx1:#1a1a18;--tx2:#5f5e5a;--tx3:#888780;
+  --tx-ok:#3b6d11;--tx-warn:#854f0b;--tx-err:#a32d2d;--tx-info:#185fa5;
+  --bd3:rgba(0,0,0,.10);--bd2:rgba(0,0,0,.18);
+  --purple:#534AB7;--purple-dk:#3C3489;
+  --r-md:8px;--r-lg:12px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg1:#1e1e1c;--bg2:#2a2a27;--bg3:#141412;
+  --bg-ok:#173404;--bg-warn:#412402;--bg-err:#501313;--bg-info:#042c53;
+  --tx1:#f0ede6;--tx2:#b4b2a9;--tx3:#888780;
+  --tx-ok:#c0dd97;--tx-warn:#fac775;--tx-err:#f09595;--tx-info:#85b7eb;
+  --bd3:rgba(255,255,255,.10);--bd2:rgba(255,255,255,.18);
+}}
+body{font-family:var(--font);background:var(--bg3);color:var(--tx1);min-height:100vh}
+.wrap{max-width:820px;margin:0 auto;padding:1.5rem 1rem}
+input,select,button{font-family:var(--font);font-size:14px;color:var(--tx1)}
+input[type=text],input[type=file],select{width:100%;height:36px;padding:0 10px;border:0.5px solid var(--bd2);border-radius:var(--r-md);background:var(--bg1);color:var(--tx1)}
+input:focus,select:focus{outline:none;box-shadow:0 0 0 2px #AFA9EC}
+input[readonly]{background:var(--bg2)!important;color:var(--tx2)!important}
+.tab-bar{display:flex;gap:4px;padding:0 0 1rem;border-bottom:0.5px solid var(--bd3);margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:var(--r-md);font-size:13px;cursor:pointer;border:0.5px solid transparent;color:var(--tx2);background:transparent;transition:all .15s}
+.tab.active{background:var(--bg2);border-color:var(--bd2);color:var(--tx1);font-weight:500}
+.tab:hover:not(.active){background:var(--bg2)}
+.sec{display:none}.sec.active{display:block}
+.card{background:var(--bg1);border:0.5px solid var(--bd3);border-radius:var(--r-lg);padding:1.25rem;margin-bottom:1rem}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:1.5rem}
+.m{background:var(--bg2);border-radius:var(--r-md);padding:.9rem}
+.ml{font-size:11px;color:var(--tx2);margin-bottom:5px}
+.mv{font-size:22px;font-weight:500}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:3px 9px;border-radius:var(--r-md)}
+.ok{background:var(--bg-ok);color:var(--tx-ok)}
+.warn{background:var(--bg-warn);color:var(--tx-warn)}
+.err{background:var(--bg-err);color:var(--tx-err)}
+.zone{border:1.5px dashed var(--bd2);border-radius:var(--r-lg);padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .15s}
+.zone:hover{background:var(--bg2)}
+.zone.done{background:var(--bg-ok);border-color:#639922;border-style:solid}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;color:var(--tx2);font-weight:500}
+.btn{background:var(--purple);color:#fff;border:none;border-radius:var(--r-md);padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;width:100%;margin-top:8px}
+.btn:hover{background:var(--purple-dk)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sec{font-size:13px;padding:8px 14px;border-radius:var(--r-md);border:0.5px solid var(--bd2);background:transparent;cursor:pointer;color:var(--tx2);width:100%;margin-top:6px}
+.btn-sec:hover{background:var(--bg2)}
+.st{font-size:12px;margin-top:8px;min-height:18px;color:var(--tx2)}
+.st.load{color:var(--purple)}.st.ok2{color:var(--tx-ok)}.st.fail{color:var(--tx-err)}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{text-align:left;font-weight:500;color:var(--tx2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:0 8px 10px}
+td{padding:9px 8px;border-top:0.5px solid var(--bd3);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:var(--bg2)}
+.pb{height:6px;border-radius:3px;background:var(--bg2);overflow:hidden;margin-bottom:1.5rem}
+.pf{height:100%;border-radius:3px;background:var(--purple);transition:width .6s}
+.stitle{font-size:15px;font-weight:500;margin-bottom:1rem}
+.info-box{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-info);border-radius:var(--r-md);font-size:13px;color:var(--tx-info);margin-bottom:1rem}
+@media(max-width:500px){.row2{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div class="wrap">
 
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem">
-    <div style="width:36px;height:36px;border-radius:var(--r-md);background:var(--purple);display:flex;align-items:center;justify-content:center">
-      <i class="ti ti-package" style="color:#fff;font-size:18px"></i>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem">
+  <div style="width:36px;height:36px;border-radius:var(--r-md);background:var(--purple);display:flex;align-items:center;justify-content:center">
+    <i class="ti ti-package" style="color:#fff;font-size:18px"></i>
+  </div>
+  <div>
+    <p style="font-size:17px;font-weight:500">PODs en Línea <span style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:4px;margin-left:4px">v4 · Sheets API</span></p>
+    <p style="font-size:12px;color:var(--tx2)">The Elite Flower by Hannaford · Google Sheets directo</p>
+  </div>
+  <span id="sync-badge" class="badge warn" style="margin-left:auto">Iniciando...</span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('dashboard')"><i class="ti ti-chart-bar"></i> Dashboard</button>
+  <button class="tab" onclick="switchTab('upload')"><i class="ti ti-camera"></i> Cargar POD</button>
+  <button class="tab" onclick="switchTab('database')"><i class="ti ti-file-spreadsheet"></i> DB Diaria</button>
+  <button class="tab" onclick="switchTab('records')"><i class="ti ti-list"></i> Registros</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="sec active">
+  <div id="dash-msg" class="info-box"><i class="ti ti-loader"></i> Cargando datos...</div>
+  <div class="metrics">
+    <div class="m"><div class="ml"><i class="ti ti-package"></i> Total DB</div><div class="mv" id="m-total">—</div></div>
+    <div class="m"><div class="ml"><i class="ti ti-circle-check"></i> Entregados</div><div class="mv" id="m-ok" style="color:var(--tx-ok)">—</div></div>
+    <div class="m"><div class="ml"><i class="ti ti-photo-off"></i> Sin factura</div><div class="mv" id="m-no" style="color:var(--tx-warn)">—</div></div>
+    <div class="m"><div class="ml"><i class="ti ti-percentage"></i> Cobertura</div><div class="mv" id="m-pct" style="color:var(--purple)">—</div></div>
+    <div class="m"><div class="ml"><i class="ti ti-camera"></i> PODs cargados</div><div class="mv" id="m-pods">—</div></div>
+    <div class="m"><div class="ml"><i class="ti ti-clock"></i> Últ. cruce</div><div class="mv" id="m-cross" style="font-size:12px;padding-top:4px">—</div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+    <span style="font-size:13px;color:var(--tx2)">Cobertura</span>
+    <span style="font-size:13px;font-weight:500;color:var(--purple)" id="pct-lbl">0%</span>
+  </div>
+  <div class="pb"><div class="pf" id="pf" style="width:0%"></div></div>
+  <div class="card">
+    <p class="stitle"><i class="ti ti-truck"></i> Por carrier</p>
+    <div id="carriers" style="font-size:13px;color:var(--tx2)">Carga la DB diaria para ver el desglose.</div>
+  </div>
+  <button class="btn-sec" onclick="loadDashboard()"><i class="ti ti-refresh"></i> Actualizar</button>
+</div>
+
+<!-- CARGAR POD -->
+<div id="tab-upload" class="sec">
+  <div class="card">
+    <p class="stitle"><i class="ti ti-camera"></i> Nueva foto de POD</p>
+    <div class="zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFile(this)">
+      <i class="ti ti-photo-up" style="font-size:36px;color:var(--tx2)"></i>
+      <p style="margin-top:10px;font-size:14px;color:var(--tx2)" id="drop-lbl">Haz clic o arrastra la foto del POD</p>
+      <p style="font-size:12px;color:var(--tx3);margin-top:4px">JPG, PNG, HEIC · La APP extrae los datos automáticamente</p>
     </div>
-    <div>
-      <p style="font-size:17px;font-weight:500">PODs en Línea <span style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:4px;margin-left:4px">v3 · Drive</span></p>
-      <p style="font-size:12px;color:var(--tx2)">Google Drive · Google Sheets · Tiempo real</p>
-    </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <span id="sync-badge" class="badge warn">Sin configurar</span>
-      <button onclick="switchTab('config')" style="font-size:12px;padding:5px 10px;border-radius:var(--r-md);border:0.5px solid var(--bd2);background:transparent;cursor:pointer;color:var(--tx2)">
-        <i class="ti ti-settings"></i>
+    <div class="st" id="ai-st"></div>
+    <div style="margin-top:1.25rem">
+      <div class="row2">
+        <div class="field"><label>Número de orden</label><input type="text" id="f-order" placeholder="Extraído de la foto..." readonly></div>
+        <div class="field"><label>Cliente</label><input type="text" id="f-client" placeholder="Extraído de la foto..." readonly></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Carrier</label><input type="text" id="f-carrier" placeholder="Extraído de la foto..." readonly></div>
+        <div class="field"><label>Cantidad</label><input type="text" id="f-qty" placeholder="Extraído de la foto..." readonly></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Fecha</label><input type="text" id="f-date" readonly></div>
+        <div class="field"><label><i class="ti ti-clock"></i> Hora de recibido</label><input type="text" id="f-time" readonly style="font-weight:500;color:var(--purple)"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Estado</label><input type="text" id="f-status" value="Pendiente cruce" readonly></div>
+        <div class="field"><label>Operador</label><input type="text" id="f-user" placeholder="Nombre del operador"></div>
+      </div>
+      <div id="photo-preview" style="display:none;margin-bottom:12px">
+        <img id="preview-img" src="" style="max-width:100%;max-height:200px;border-radius:var(--r-md);border:0.5px solid var(--bd2)">
+      </div>
+      <button class="btn" id="btn-save" disabled onclick="savePOD()">
+        <i class="ti ti-cloud-upload"></i> Guardar en Drive y Sheets
+      </button>
+      <button class="btn-sec" id="btn-reset" style="display:none" onclick="resetForm()">
+        <i class="ti ti-refresh"></i> Limpiar y cargar otro POD
       </button>
     </div>
   </div>
+</div>
 
-  <div class="tab-bar">
-    <button class="tab active" onclick="switchTab('dashboard')"><i class="ti ti-chart-bar"></i> Dashboard</button>
-    <button class="tab" onclick="switchTab('upload')"><i class="ti ti-camera"></i> Cargar POD</button>
-    <button class="tab" onclick="switchTab('database')"><i class="ti ti-file-spreadsheet"></i> DB Diaria</button>
-    <button class="tab" onclick="switchTab('records')"><i class="ti ti-list"></i> Registros</button>
-    <button class="tab" onclick="switchTab('config')"><i class="ti ti-settings"></i> Config</button>
+<!-- DB DIARIA -->
+<div id="tab-database" class="sec">
+  <div class="card">
+    <p class="stitle"><i class="ti ti-file-spreadsheet"></i> Cargar base de datos del día</p>
+    <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem">Sube el Excel diario. El sistema cruza con los PODs y asigna los estados.</p>
+    <div class="zone" id="excel-zone" onclick="document.getElementById('excel-input').click()">
+      <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcel(this)">
+      <i class="ti ti-table-import" style="font-size:36px;color:var(--tx2)"></i>
+      <p style="margin-top:10px;font-size:14px;color:var(--tx2)" id="excel-lbl">Haz clic para subir el Excel del día</p>
+      <p style="font-size:12px;color:var(--tx3);margin-top:4px">XLSX · XLS · CSV</p>
+    </div>
+    <div class="st" id="excel-st"></div>
   </div>
-
-  <!-- ===== DASHBOARD ===== -->
-  <div id="tab-dashboard" class="sec active">
-    <div id="dash-loading" class="info-bar"><i class="ti ti-loader"></i> Cargando datos desde Google Sheets...</div>
-    <div class="metrics">
-      <div class="m"><div class="ml"><i class="ti ti-package"></i> Total DB</div><div class="mv" id="m-total">—</div></div>
-      <div class="m"><div class="ml"><i class="ti ti-circle-check"></i> Entregados</div><div class="mv" id="m-ok" style="color:var(--tx-ok)">—</div></div>
-      <div class="m"><div class="ml"><i class="ti ti-photo-off"></i> Sin factura</div><div class="mv" id="m-no" style="color:var(--tx-warn)">—</div></div>
-      <div class="m"><div class="ml"><i class="ti ti-percentage"></i> Cobertura</div><div class="mv" id="m-pct" style="color:var(--purple)">—</div></div>
-      <div class="m"><div class="ml"><i class="ti ti-camera"></i> PODs cargados</div><div class="mv" id="m-pods">—</div></div>
-      <div class="m"><div class="ml"><i class="ti ti-clock"></i> Últ. cruce</div><div class="mv" id="m-cross" style="font-size:13px;padding-top:4px">—</div></div>
+  <div class="card" id="db-preview" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <p class="stitle" style="margin:0"><i class="ti ti-eye"></i> Vista previa</p>
+      <span id="db-badge" class="badge warn"></span>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-      <span style="font-size:13px;color:var(--tx2)">Cobertura total</span>
-      <span style="font-size:13px;font-weight:500;color:var(--purple)" id="pct-lbl">0%</span>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th style="width:18%">Order #</th><th style="width:24%">Cliente</th><th style="width:18%">Carrier</th><th style="width:14%">Fecha</th><th style="width:8%">Qty</th><th style="width:18%">Estado</th></tr></thead>
+      <tbody id="db-tbody"></tbody></table>
     </div>
-    <div class="pb"><div class="pf" id="pf" style="width:0%"></div></div>
-    <div class="card">
-      <p class="stitle"><i class="ti ti-truck"></i> Por carrier</p>
-      <div id="carriers" style="font-size:13px;color:var(--tx2)">Carga la DB diaria para ver el desglose.</div>
-    </div>
-    <div class="card">
-      <p class="stitle"><i class="ti ti-chart-line"></i> PODs por hora (hoy)</p>
-      <div style="position:relative;width:100%;height:180px">
-        <canvas id="chart-hour" role="img" aria-label="PODs cargados por hora hoy">Sin datos.</canvas>
-      </div>
-    </div>
-    <button onclick="refreshDash()" style="font-size:13px;padding:8px 16px;border-radius:var(--r-md);border:0.5px solid var(--bd2);background:transparent;cursor:pointer;color:var(--tx2);width:100%">
-      <i class="ti ti-refresh"></i> Actualizar datos
+    <button class="btn" style="margin-top:1rem" onclick="runCross()">
+      <i class="ti ti-arrows-exchange"></i> Ejecutar cruce y guardar en Sheets
     </button>
   </div>
+</div>
 
-  <!-- ===== CARGAR POD ===== -->
-  <div id="tab-upload" class="sec">
-    <div id="apikey-warning" style="background:#FFF3CD;border:1px solid #FFCA2C;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:#664D03;align-items:center;gap:10px;display:none">
-      <i class="ti ti-alert-triangle" style="font-size:20px;color:#CC8A00;flex-shrink:0"></i>
-      <b>Falta la API Key.</b>&nbsp; Ve a la pestaña <b>Config</b>, pega tu Anthropic API Key y guarda. Sin ella la extracción automática no funciona, pero puedes ingresar los datos manualmente.
-      <button onclick="switchTab('config')" style="margin-left:8px;padding:5px 12px;background:#534AB7;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Ir a Config →</button>
-    </div>
-    <div class="card">
-      <p class="stitle"><i class="ti ti-camera"></i> Nueva foto de POD</p>
-      <div class="zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFile(this)">
-        <i class="ti ti-photo-up" style="font-size:36px;color:var(--tx2)"></i>
-        <p style="margin-top:10px;font-size:14px;color:var(--tx2)" id="drop-lbl">Haz clic o arrastra la foto del POD</p>
-        <p style="font-size:12px;color:var(--tx3);margin-top:4px">JPG, PNG, HEIC · La IA extrae los datos · La foto se sube a Drive</p>
-      </div>
-      <div class="st" id="ai-st"></div>
-      <div style="margin-top:1.25rem">
-        <div class="row2">
-          <div class="field"><label>Número de orden</label><input type="text" id="f-order" placeholder="Extraído de la foto..." readonly></div>
-          <div class="field"><label>Cliente</label><input type="text" id="f-client" placeholder="Extraído de la foto..." readonly></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>Carrier</label><input type="text" id="f-carrier" placeholder="Extraído de la foto..." readonly></div>
-          <div class="field"><label>Cantidad</label><input type="text" id="f-qty" placeholder="Extraído de la foto..." readonly></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>Fecha</label><input type="text" id="f-date" readonly></div>
-          <div class="field"><label><i class="ti ti-clock"></i> Hora de recibido</label><input type="text" id="f-time" readonly style="font-weight:500;color:var(--purple)"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>Estado</label><input type="text" id="f-status" value="Pendiente cruce" readonly></div>
-          <div class="field"><label>Operador</label><input type="text" id="f-user" placeholder="Nombre del operador"></div>
-        </div>
-        <div id="photo-preview" style="display:none;margin-bottom:12px">
-          <img id="preview-img" src="" style="max-width:100%;max-height:200px;border-radius:var(--r-md);border:0.5px solid var(--bd2)">
-        </div>
-        <button class="btn" id="btn-save" disabled onclick="savePOD()">
-          <i class="ti ti-cloud-upload"></i> Guardar en Drive y Sheets
-        </button>
-        <button id="btn-reset" onclick="resetUploadForm()" style="display:none;margin-top:8px;width:100%;padding:9px;border-radius:var(--r-md);border:1.5px solid var(--bd2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--font);color:var(--tx2)">
-          <i class="ti ti-refresh"></i> Limpiar y cargar otro POD
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== DB DIARIA ===== -->
-  <div id="tab-database" class="sec">
-    <div class="info-bar" id="db-bar" style="display:none"><i class="ti ti-info-circle"></i><span id="db-bar-txt"></span></div>
-    <div class="card">
-      <p class="stitle"><i class="ti ti-file-spreadsheet"></i> Cargar base de datos del día</p>
-      <p style="font-size:13px;color:var(--tx2);margin-bottom:1rem">Sube el Excel diario. El sistema cruza con los PODs registrados en Sheets.</p>
-      <div class="zone" id="excel-zone" onclick="document.getElementById('excel-input').click()">
-        <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcel(this)">
-        <i class="ti ti-table-import" style="font-size:36px;color:var(--tx2)"></i>
-        <p style="margin-top:10px;font-size:14px;color:var(--tx2)" id="excel-lbl">Haz clic para subir el Excel del día</p>
-        <p style="font-size:12px;color:var(--tx3);margin-top:4px">XLSX · XLS · CSV</p>
-      </div>
-      <div class="st" id="excel-st"></div>
-    </div>
-    <div class="card" id="db-preview" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-        <p class="stitle" style="margin:0"><i class="ti ti-eye"></i> Vista previa</p>
-        <span id="db-badge" class="badge warn"></span>
-      </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th style="width:18%">Order #</th><th style="width:22%">Cliente</th><th style="width:18%">Carrier</th><th style="width:14%">Fecha</th><th style="width:8%">Qty</th><th style="width:20%">Estado</th></tr></thead>
-          <tbody id="db-tbody"></tbody>
-        </table>
-      </div>
-      <button class="btn" style="margin-top:1rem" onclick="runCross()">
-        <i class="ti ti-arrows-exchange"></i> Ejecutar cruce en Google Sheets
+<!-- REGISTROS -->
+<div id="tab-records" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+    <p class="stitle" style="margin:0"><i class="ti ti-list-details"></i> PODs registrados (<span id="rec-count">0</span>)</p>
+    <div style="display:flex;gap:8px">
+      <select id="filter-st" onchange="renderRecords()" style="width:auto;height:34px;font-size:12px">
+        <option value="">Todos</option><option value="Entregado">Entregado</option>
+        <option value="Sin factura">Sin factura</option><option value="Con foto">Con foto</option>
+      </select>
+      <button onclick="exportCSV()" style="font-size:12px;padding:6px 12px;border-radius:var(--r-md);border:0.5px solid var(--bd2);background:transparent;cursor:pointer;color:var(--tx2)">
+        <i class="ti ti-download"></i> CSV
       </button>
     </div>
   </div>
-
-  <!-- ===== REGISTROS ===== -->
-  <div id="tab-records" class="sec">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
-      <p class="stitle" style="margin:0"><i class="ti ti-list-details"></i> PODs registrados (<span id="rec-count">0</span>)</p>
-      <div style="display:flex;gap:8px">
-        <select id="filter-st" onchange="renderRecords()" style="width:auto;height:34px;font-size:12px">
-          <option value="">Todos</option>
-          <option value="Entregado">Entregado</option>
-          <option value="Sin factura">Sin factura</option>
-          <option value="Con foto">Con foto</option>
-        </select>
-        <button onclick="exportCSV()" style="font-size:12px;padding:6px 12px;border-radius:var(--r-md);border:0.5px solid var(--bd2);background:transparent;cursor:pointer;color:var(--tx2)">
-          <i class="ti ti-download"></i> CSV
-        </button>
-      </div>
-    </div>
-    <div id="records-loading" style="display:none" class="info-bar"><i class="ti ti-loader"></i> Cargando registros desde Sheets...</div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr>
-            <th style="padding:12px 8px 10px;width:12%">Orden</th>
-            <th style="width:17%">Cliente</th>
-            <th style="width:13%">Carrier</th>
-            <th style="width:10%">Fecha</th>
-            <th style="width:11%">Hora recibido</th>
-            <th style="width:6%">Qty</th>
-            <th style="width:11%">Operador</th>
-            <th style="width:10%">Estado</th>
-            <th style="width:10%">Foto</th>
-          </tr></thead>
-          <tbody id="records-body">
-            <tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:2rem">Presiona "Actualizar" para cargar.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <button onclick="loadRecords()" style="font-size:13px;padding:8px 16px;border-radius:var(--r-md);border:0.5px solid var(--bd2);background:transparent;cursor:pointer;color:var(--tx2);width:100%;margin-top:8px">
-      <i class="ti ti-refresh"></i> Actualizar registros
-    </button>
-  </div>
-
-  <!-- ===== CONFIGURACIÓN ===== -->
-  <div id="tab-config" class="sec">
-    <div class="card">
-      <p class="stitle"><i class="ti ti-settings"></i> Configuración de integraciones</p>
-      <div class="field" style="margin-bottom:12px">
-        <label>URL del Google Apps Script (Web App URL)</label>
-        <input type="text" id="cfg-script" placeholder="https://script.google.com/macros/s/XXXXXXX/exec">
-      </div>
-      <div class="field" style="margin-bottom:12px">
-        <label>Anthropic API Key (para extraer datos de fotos)</label>
-        <input type="text" id="cfg-apikey" placeholder="sk-ant-...">
-      </div>
-      <button class="btn" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
-      <button onclick="testConnection()" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r-md);border:1.5px solid var(--bd2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--font);color:var(--tx2)">
-        <i class="ti ti-plug"></i> Probar conexión con Apps Script
-      </button>
-      <div class="st" id="cfg-st"></div>
-    </div>
-
-    <div class="card">
-      <p class="stitle"><i class="ti ti-help"></i> Instrucciones de configuración</p>
-
-      <div class="step-box">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="step-num">1</span>Crear el Spreadsheet en Google Sheets</p>
-        <p style="font-size:12px;color:var(--tx2);line-height:1.6">Ve a <a href="https://sheets.google.com" target="_blank" style="color:var(--purple)">sheets.google.com</a> y crea un nuevo spreadsheet en blanco. Copia el ID de la URL: <code>https://docs.google.com/spreadsheets/d/<b>ESTE_ES_EL_ID</b>/edit</code></p>
-      </div>
-
-      <div class="step-box">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="step-num">2</span>Crear la carpeta en Google Drive</p>
-        <p style="font-size:12px;color:var(--tx2);line-height:1.6">Ve a <a href="https://drive.google.com" target="_blank" style="color:var(--purple)">drive.google.com</a>, crea una carpeta llamada "PODs Fotos". Ábrela y copia el ID del final de la URL: <code>https://drive.google.com/drive/folders/<b>ESTE_ES_EL_ID</b></code></p>
-      </div>
-
-      <div class="step-box">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="step-num">3</span>Crear el Apps Script</p>
-        <p style="font-size:12px;color:var(--tx2);line-height:1.6">Ve a <a href="https://script.google.com" target="_blank" style="color:var(--purple)">script.google.com</a> → Nuevo proyecto → pega el código del archivo <code>apps_script.js</code> → reemplaza <code>SPREADSHEET_ID</code> y <code>DRIVE_FOLDER_ID</code> con los IDs del paso 1 y 2.</p>
-      </div>
-
-      <div class="step-box">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="step-num">4</span>Publicar el Apps Script</p>
-        <p style="font-size:12px;color:var(--tx2);line-height:1.6">En el editor del script: <b>Implementar → Nueva implementación → Tipo: Aplicación web</b> → Ejecutar como: <b>Yo</b> → Quién tiene acceso: <b>Cualquier persona</b> → Implementar. Copia la URL generada.</p>
-      </div>
-
-      <div class="step-box">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="step-num">5</span>Pegar la URL aquí arriba</p>
-        <p style="font-size:12px;color:var(--tx2);line-height:1.6">Pega la URL del paso 4 en el campo "URL del Google Apps Script" de arriba y guarda.</p>
-      </div>
-
-      <div class="step-box">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="step-num">6</span>Publicar la app en GitHub Pages</p>
-        <p style="font-size:12px;color:var(--tx2);line-height:1.6">Ve a <a href="https://github.com" target="_blank" style="color:var(--purple)">github.com</a> → Nuevo repositorio → sube el archivo <code>pods_app_v3.html</code> renombrado como <code>index.html</code> → Settings → Pages → Branch: main → Save. Tu URL será <code>https://TU_USUARIO.github.io/TU_REPO</code></p>
-      </div>
+  <div id="rec-loading" style="display:none" class="info-box"><i class="ti ti-loader"></i> Cargando...</div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table><thead><tr>
+        <th style="padding:12px 8px 10px;width:12%">Orden</th><th style="width:18%">Cliente</th>
+        <th style="width:13%">Carrier</th><th style="width:10%">Fecha</th>
+        <th style="width:11%">Hora recibido</th><th style="width:7%">Qty</th>
+        <th style="width:10%">Operador</th><th style="width:10%">Estado</th><th style="width:9%">Foto</th>
+      </tr></thead>
+      <tbody id="records-body"><tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:2rem">Presiona actualizar.</td></tr></tbody>
+      </table>
     </div>
   </div>
+  <button class="btn-sec" onclick="loadRecords()"><i class="ti ti-refresh"></i> Actualizar registros</button>
+</div>
 
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-// ===== CONFIG =====
-// ── CONFIGURACIÓN FIJA ─────────────────────────────────────
-// Estos valores se cargan automáticamente en cualquier dispositivo.
-// Si están vacíos, el usuario los ingresa en la pestaña Config.
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGba2HQvOYK8bdvqR8_OMPMjJsRCa07DIm40nH-5Q22knoA2cn1zgqnb0Fd4qEgkC-/exec';
-const DEFAULT_API_KEY    = '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';   // <-- Pega aquí tu API Key para que no se pida nunca
-// ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// CONFIGURACIÓN — NO TOCAR
+// ═══════════════════════════════════════════════════════════
+const SPREADSHEET_ID  = '1AyQfx7EMIqVnJ9SvmR3P9RkYBTqlSVAGQeESqYCJb2M';
+const DRIVE_FOLDER_ID = '17n611a3QQZzfYWmbK27qCsAphhB8zFyx';
+const ANTHROPIC_KEY   = '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';
+const CLIENT_EMAIL    = 'eliteflowerpo-978@eliteflowerpo.iam.gserviceaccount.com';
+const PRIVATE_KEY_PEM = `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCqAw6VGcjzGqxi
+q0NSWIKtyKBKRXpIlKGeTjWGHUSLVmFrE6Y1gCDzBkbjCmwC7vGd/pSSrZGS363r
+JNNnPhOODirfHnMXpSoTSf/+/XlH4Rxx3x0uQoZoAbdmtKEKDZUkCgd6R/RpDs7/
+X/4PiKTSdfyzQ/tVZrgQGHFmZ9+AFbcrseosTr/WmET2VK/5fiqvvsne/fSoiqB2
+zPcuXFQd90MhOChG4kiWAg5YHwx9Y0Io4pLdbprnJ8FQhwil+sJ1VSX830+/7gi9
+/UmP1UkGSyn58Zk9p7s9wiPJUli+fHCJEgRoaFNvDeGn2ozgNX6IfpjhBN4ew7T9
+l5YFU6HNAgMBAAECgf9KYQwAL0e7E/BXOpY5cH+7iAqYc80L8/rBR3YjNqrGSwRT
+1ETjIytHJ3fb3LNklSUf+kEF6unFWBa+yV2zzXTAsXIQK0IvFhNSXQ2igUKOL+5B
+41rg4jnrRtT2GhBaVZbqLXkYBmLnk5L8JwL/yMhTS0tDInrS4h2k7QyvwMIHRsGx
+wss0IAoEwtmUc0T9AJjC07PPvtNAHNlbOVO8Awh2xNEmmUqvSf5Wx+htgZahqIGd
+GOEl0Sm1D3E2Did6wcIGfi4Pb0HgHqJxzDVhA3HH1asxljk79yvpnsPmcvaDGuyt
+zfs4Y9eZseAv80lAOvI+XON+jJgi1WoEszX83gECgYEA4pMEw92su4uWPeZQ4ZbS
+r45n2GlIEprKaZXMzRQYCSdsU81X3eFADZt0aZ4aCVaAyaaKCY3ggPqmBvskBZtJ
+RjH89A3f+wXa3eLlSAgOKPohtkYFNAitK86s13pmdvqiSbMRBtcAUbj19oQQ35rM
+173cwLI7aj4D+sXK5/46xCUCgYEAwBd+UdEamtJSU/9UJoaetxmDmSSv2zS//Kn6
+B+l995b+3TnIbAjgrh1ayxtb1R92uixlH5utZCds0JH2v4icXwvqAvRzLSk2krWI
+zI4gq/JhkVoyTHkeNEizv7C3n5FpJ1RWVqdqJk4CQkQvc6sV6kej0/ASZJjp5fwc
+J+JY4okCgYEAqb+T9lqCKxBtQ3rmZdzlg/mg+5YFFUs7EtfUVGEVkOYkVrSle+pi
+Xs907BwzTYOtgWZwTLAq3vbqpJhLaJfq0dhptz8d66d7TnnLZagDU9fyoejbxRwr
+AYMaI2Xkloc4RxcNTp6N8qwsOsC/E4eaqJfqZ8Qgl3xW5u6BEkZ6KLECgYEAhOw8
+5xTRWi0L90AJ1Rb2oTEwlTqDziY0a/ybHfp+xmNgPWmMvOVvxExf1Yg7BcFeAPpT
+h4nMdC+r5q/6lRNNUaAG8MCDKs8ICoFABnybMyDoTxKhF7YAJqHgcFcy2WJf520+
+yXvTwmncukpAo8PRyGqGfVP1BlOiFxlbymWgqDECgYBxhxQRuwKymMvijnLmMgZZ
+5im4o2ijQn8amQnOWdF5nf7/bn2hiLXAfhcahpBzWPzmTNrrXlAWl8ZrVwk8r1yo
+t1Ww2b7tDb9TsUJVBwaAMcNZ1qoDBsKrpML3WApspHaVwJ0fDyFzjU7fU3bCJi5Q
+l0eGfmUgrsgZrFR+NfkYCw==
+-----END PRIVATE KEY-----`;
+const SHEET_PODS      = 'PODs';
+const SHEET_DB        = 'DB_Diaria';
+// ═══════════════════════════════════════════════════════════
 
-let CFG = JSON.parse(localStorage.getItem('pods_cfg') || '{}');
-// Los valores DEFAULT siempre tienen prioridad si están definidos en el código
-// Esto asegura que funcione en cualquier dispositivo sin configuración manual
-if (DEFAULT_SCRIPT_URL) CFG.scriptURL = DEFAULT_SCRIPT_URL;
-if (DEFAULT_API_KEY)    CFG.apiKey    = DEFAULT_API_KEY;
-// Guardar inmediatamente para que Config muestre los valores correctos
-localStorage.setItem('pods_cfg', JSON.stringify(CFG));
-let allPods = [];
-let dbRows  = [];
-let hourChart = null;
+let allPods  = [];
+let dbRows   = [];
+let gToken   = null;
+let gTokenExp= 0;
 
-function getScriptURL() { return CFG.scriptURL || ''; }
-function getAPIKey()    { return CFG.apiKey    || ''; }
-function isConfigured() { return !!CFG.scriptURL && !!CFG.apiKey; }
+// ── JWT / OAuth para Google Sheets API ──────────────────
+async function getGoogleToken() {
+  if (gToken && Date.now() < gTokenExp) return gToken;
+  const now  = Math.floor(Date.now()/1000);
+  const header  = btoa(JSON.stringify({alg:'RS256',typ:'JWT'})).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const payload = btoa(JSON.stringify({
+    iss: CLIENT_EMAIL,
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now+3600, iat: now
+  })).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 
+  const sigInput  = header + '.' + payload;
+  const keyData   = PRIVATE_KEY_PEM.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g,'').replace(/\s/g,'');
+  const binaryKey = Uint8Array.from(atob(keyData), c=>c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey('pkcs8', binaryKey.buffer,
+    {name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'}, false, ['sign']);
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey,
+    new TextEncoder().encode(sigInput));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const jwt = sigInput + '.' + sigB64;
 
-function unlockFields() {
-  ["f-order","f-client","f-carrier","f-qty"].forEach(id => {
-    const el = document.getElementById(id);
-    el.value = ""; el.removeAttribute("readonly"); el.placeholder = "Escribe aqui...";
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`
   });
+  const data = await res.json();
+  if (!data.access_token) throw new Error('No se pudo obtener token de Google: ' + JSON.stringify(data));
+  gToken    = data.access_token;
+  gTokenExp = Date.now() + (data.expires_in-60)*1000;
+  return gToken;
 }
 
-function saveConfig() {
-  CFG.scriptURL = document.getElementById('cfg-script').value.trim();
-  CFG.apiKey    = document.getElementById('cfg-apikey').value.trim();
-  localStorage.setItem('pods_cfg', JSON.stringify(CFG));
-  document.getElementById('cfg-st').className = 'st ok2';
-  document.getElementById('cfg-st').textContent = '✓ Configuración guardada correctamente';
-  updateSyncBadge();
-  const w = document.getElementById('apikey-warning'); if(w) w.style.display='none';
-  setTimeout(() => switchTab('dashboard'), 1200);
+// ── Llamadas a Google Sheets API ────────────────────────
+async function sheetsGet(range) {
+  const token = await getGoogleToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/$1AyQfx7EMIqVnJ9SvmR3P9RkYBTqlSVAGQeESqYCJb2M/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, {headers:{Authorization:'Bearer '+token}});
+  const data = await res.json();
+  if (data.error) throw new Error('Sheets API: ' + data.error.message);
+  return data.values || [];
 }
 
-async function testConnection() {
-  const st = document.getElementById('cfg-st');
-  const url = document.getElementById('cfg-script').value.trim();
-  if (!url) { st.className='st fail'; st.textContent='⚠️ Primero pega la URL del Apps Script.'; return; }
-  st.className='st load'; st.textContent='Probando conexión...';
-  try {
-    const res = await fetch(url + '?action=getStats', { redirect: 'follow' });
-    if (!res.ok) throw new Error('El servidor respondió con error ' + res.status);
-    const text = await res.text();
-    const data = JSON.parse(text);
-    if (data.ok !== undefined) {
-      st.className='st ok2';
-      st.textContent='✓ Conexión exitosa con el Apps Script. Todo funciona correctamente.';
-    } else {
-      st.className='st fail';
-      st.textContent='⚠️ El Apps Script respondió pero con formato inesperado. ¿Instalaste el apps_script_v2.js?';
-    }
-  } catch(err) {
-    st.className='st fail';
-    let msg = err.message || '';
-    if (msg.includes('Failed to fetch') || msg.includes('Load failed'))
-      msg = 'No se pudo conectar. Verifica que la URL sea correcta y que el script esté publicado como "Cualquier persona".';
-    else if (msg.includes('JSON'))
-      msg = 'El Apps Script respondió pero no es el v2. Copia el código de apps_script_v2.js y publica una Nueva implementación.';
-    st.textContent = '⚠️ ' + msg;
-  }
+async function sheetsAppend(range, values) {
+  const token = await getGoogleToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/$1AyQfx7EMIqVnJ9SvmR3P9RkYBTqlSVAGQeESqYCJb2M/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+  const res = await fetch(url, {
+    method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify({values})
+  });
+  const data = await res.json();
+  if (data.error) throw new Error('Sheets Append: ' + data.error.message);
+  return data;
 }
 
-function updateSyncBadge() {
-  const b = document.getElementById('sync-badge');
-  if (isConfigured()) { b.className = 'badge ok'; b.textContent = 'Conectado'; }
-  else                { b.className = 'badge warn'; b.textContent = 'Sin configurar'; }
-}
-
-// ===== TABS =====
-function switchTab(name) {
-  const names = ['dashboard','upload','database','records','config'];
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i] === name));
-  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'dashboard') refreshDash();
-  if (name === 'records')   loadRecords();
-  if (name === 'upload') {
-    const w = document.getElementById('apikey-warning');
-    if (w) w.style.display = (getAPIKey() || DEFAULT_API_KEY) ? 'none' : 'flex';
-  }
-}
-
-// ===== HELPERS =====
-function nowTime() {
-  return new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-function nowDateTime() {
-  return new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-
-async function callScript(payload) {
-  const url = getScriptURL();
-  if (!url) throw new Error('Apps Script no configurado. Ve a Config y pega la URL.');
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
-    if (!res.ok) throw new Error('El servidor respondió con error ' + res.status + '. Verifica que el Apps Script esté publicado correctamente.');
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch(e) { throw new Error('Respuesta inválida del servidor. Verifica que el Apps Script v2 esté publicado (no el original).'); }
-  } catch(err) {
-    if (err.message.includes('Failed to fetch') || err.message.includes('Load failed') || err.message.includes('NetworkError'))
-      throw new Error('No se pudo conectar al Apps Script. Verifica: 1) La URL en Config es correcta, 2) El script está publicado como "Cualquier persona".');
-    throw err;
-  }
-}
-
-async function callScriptGET(action) {
-  const url = getScriptURL();
-  if (!url) throw new Error('Apps Script no configurado');
-  const res = await fetch(url + '?action=' + action);
+async function sheetsClear(range) {
+  const token = await getGoogleToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/$1AyQfx7EMIqVnJ9SvmR3P9RkYBTqlSVAGQeESqYCJb2M/values/${encodeURIComponent(range)}:clear`;
+  const res = await fetch(url, {method:'POST', headers:{Authorization:'Bearer '+token}});
   return res.json();
 }
 
-// ===== CARGAR POD =====
-let currentFile = null;
+async function sheetsUpdate(range, values) {
+  const token = await getGoogleToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/$1AyQfx7EMIqVnJ9SvmR3P9RkYBTqlSVAGQeESqYCJb2M/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+  const res = await fetch(url, {
+    method:'PUT', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify({values})
+  });
+  return res.json();
+}
 
-function handleFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  currentFile = file;
+async function driveUpload(b64, mime, name) {
+  const token = await getGoogleToken();
+  const binary= atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+
+  const meta = JSON.stringify({name, parents:[DRIVE_FOLDER_ID]});
+  const boundary = 'pods_boundary_' + Date.now();
+  const body = '--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+meta+
+    '\r\n--'+boundary+'\r\nContent-Type: '+mime+'\r\n\r\n';
+  const bodyBytes = new TextEncoder().encode(body);
+  const endBytes  = new TextEncoder().encode('\r\n--'+boundary+'--');
+  const full = new Uint8Array(bodyBytes.length+bytes.length+endBytes.length);
+  full.set(bodyBytes); full.set(bytes,bodyBytes.length); full.set(endBytes,bodyBytes.length+bytes.length);
+
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'multipart/related; boundary='+boundary},
+    body: full
+  });
+  const data = await res.json();
+  if (data.error) throw new Error('Drive upload: ' + data.error.message);
+  // Make file public
+  await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`,{
+    method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({role:'reader',type:'anyone'})
+  });
+  return data;
+}
+
+// ── APP LOGIC ────────────────────────────────────────────
+function switchTab(name) {
+  const names=['dashboard','upload','database','records'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='dashboard') loadDashboard();
+  if(name==='records')   loadRecords();
+}
+
+function nowTime(){return new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function nowDate(){return new Date().toLocaleDateString('es')}
+
+// ── EXTRACCIÓN CON IA (Anthropic directo — sin CORS porque es fetch normal) ──
+let currentFile=null;
+
+function handleFile(input){
+  const file=input.files[0]; if(!file) return;
+  currentFile=file;
   document.getElementById('drop-zone').classList.add('done');
-  document.getElementById('drop-lbl').textContent = file.name;
-  document.getElementById('btn-reset').style.display = 'block';
-  document.getElementById('f-time').value = nowTime();
+  document.getElementById('drop-lbl').textContent=file.name;
+  document.getElementById('f-time').value=nowTime();
+  document.getElementById('preview-img').src=URL.createObjectURL(file);
+  document.getElementById('photo-preview').style.display='block';
+  document.getElementById('btn-reset').style.display='block';
+  const st=document.getElementById('ai-st');
+  st.className='st load'; st.textContent='Analizando foto con la APP...';
+  document.getElementById('btn-save').disabled=true;
 
-  const preview = document.getElementById('preview-img');
-  preview.src = URL.createObjectURL(file);
-  document.getElementById('photo-preview').style.display = 'block';
-
-  const st = document.getElementById('ai-st');
-
-  // ── Verificar API Key antes de intentar ──────────────────
-  if (!getAPIKey()) {
-    st.className = 'st fail';
-    st.innerHTML = '⚠️ Falta la API Key. Ve a la pestaña <b>Config</b>, pega tu Anthropic API Key y guarda.';
-    unlockFields();
-    document.getElementById('btn-save').disabled = false;
-    return;
-  }
-
-  st.className = 'st load';
-  st.textContent = 'Analizando foto con la APP...';
-  document.getElementById('btn-save').disabled = true;
-
-  const reader = new FileReader();
-  reader.onload = async e => {
-    const base64 = e.target.result.split(',')[1];
-    try {
-      // Llamada a través del Apps Script (evita bloqueo CORS del navegador)
-      const scriptUrl = getScriptURL();
-      if (!scriptUrl) throw new Error('Falta la URL del Apps Script. Configúrala en la pestaña Config.');
-
-      const res = await fetch(scriptUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'extractPOD',
-          imageBase64: base64,
-          imageMime: file.type || 'image/jpeg',
-          apiKey: getAPIKey()
-        }),
-        redirect: 'follow'
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const b64=e.target.result.split(',')[1];
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify({
+          model:'claude-haiku-4-5-20251001', max_tokens:400,
+          messages:[{role:'user',content:[
+            {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
+            {type:'text',text:'Analiza este POD de entrega de flores. Responde SOLO en JSON sin backticks: {"order_number":"...","client":"...","carrier":"...","quantity":"...","date":"..."}. Si no encuentras un valor usa "No detectado".'}
+          ]}]
+        })
       });
-
-      if (!res.ok) throw new Error('El servidor respondió con error ' + res.status + '. Verifica que el Apps Script v2 esté publicado.');
-
-      const rawResp = await res.text();
-      let data;
-      try { data = JSON.parse(rawResp); }
-      catch(e) { throw new Error('El Apps Script no devolvió JSON válido. Asegúrate de haber publicado el apps_script_v2.js y no el original.'); }
-      if (!data.ok) {
-        if (data.error && data.error.includes('401')) throw new Error('API Key inválida o vencida. Verifica en Config.');
-        if (data.error && data.error.includes('429')) throw new Error('Límite de uso alcanzado. Intenta en unos minutos.');
-        throw new Error(data.error || 'Error al procesar la imagen.');
+      if(!res.ok){
+        const err=await res.json();
+        if(res.status===401) throw new Error('API Key inválida. Verifica la configuración.');
+        throw new Error('Error '+res.status+': '+(err.error?.message||''));
       }
-      const parsed = data.result;
-
-      document.getElementById('f-order').value   = parsed.order_number || 'No detectado';
-      document.getElementById('f-client').value  = parsed.client       || 'No detectado';
-      document.getElementById('f-carrier').value = parsed.carrier      || 'No detectado';
-      document.getElementById('f-qty').value     = parsed.quantity     || 'No detectado';
-      document.getElementById('f-date').value    = parsed.date         || new Date().toLocaleDateString('es');
-      st.className = 'st ok2';
-      st.textContent = '✓ Datos extraídos · Hora: ' + document.getElementById('f-time').value;
-      document.getElementById('btn-save').disabled = false;
-
-    } catch(err) {
-      unlockFields();
-      document.getElementById('f-date').value = new Date().toLocaleDateString('es');
-      st.className = 'st fail';
-      let errMsg = err.message || 'Error desconocido.';
-      // Traducir errores técnicos en inglés
-      if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch failed') || errMsg.includes('Load failed') || errMsg.includes('NetworkError'))
-        errMsg = 'Error de conexión. Verifica tu internet y que el Apps Script esté publicado correctamente.';
-      if (errMsg.includes('CORS') || errMsg.includes('cross-origin'))
-        errMsg = 'Error de permisos de servidor. Verifica que el Apps Script esté publicado como "Cualquier persona".';
-      st.textContent = '⚠️ ' + errMsg;
-      document.getElementById('btn-save').disabled = false;
-      document.getElementById('btn-reset').style.display = 'block';
+      const data=await res.json();
+      const parsed=JSON.parse(data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim());
+      document.getElementById('f-order').value  =parsed.order_number||'No detectado';
+      document.getElementById('f-client').value =parsed.client||'No detectado';
+      document.getElementById('f-carrier').value=parsed.carrier||'No detectado';
+      document.getElementById('f-qty').value    =parsed.quantity||'No detectado';
+      document.getElementById('f-date').value   =parsed.date||nowDate();
+      st.className='st ok2'; st.textContent='✓ Datos extraídos · Hora: '+document.getElementById('f-time').value;
+      document.getElementById('btn-save').disabled=false;
+    }catch(err){
+      ['f-order','f-client','f-carrier','f-qty'].forEach(id=>{
+        const el=document.getElementById(id); el.value=''; el.removeAttribute('readonly'); el.placeholder='Escribe aquí...';
+      });
+      document.getElementById('f-date').value=nowDate();
+      st.className='st fail'; st.textContent='⚠️ '+err.message+' — ingresa los datos manualmente.';
+      document.getElementById('btn-save').disabled=false;
     }
   };
   reader.readAsDataURL(file);
 }
 
-async function savePOD() {
-  const btn = document.getElementById('btn-save');
-  const st  = document.getElementById('ai-st');
-  btn.disabled = true;
-  st.className = 'st load';
-  st.textContent = 'Subiendo foto a Drive y guardando en Sheets...';
-
-  try {
-    let photoBase64 = '', photoMime = '', photoName = '';
-    if (currentFile) {
-      // Convertir a base64 en chunks para evitar "Maximum call stack size exceeded"
-      const buf   = await currentFile.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let binary  = '';
-      const CHUNK = 8192;
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-      }
-      photoBase64 = btoa(binary);
-      photoMime   = currentFile.type || 'image/jpeg';
-      photoName   = 'POD_' + document.getElementById('f-order').value + '_' + Date.now() + '.' + (currentFile.name.split('.').pop() || 'jpg');
+async function savePOD(){
+  const btn=document.getElementById('btn-save');
+  const st=document.getElementById('ai-st');
+  btn.disabled=true; st.className='st load'; st.textContent='Subiendo foto a Drive y guardando en Sheets...';
+  try{
+    // Convertir imagen a base64 en chunks (evita stack overflow)
+    let photoURL='', photoId='';
+    if(currentFile){
+      const buf=await currentFile.arrayBuffer();
+      const bytes=new Uint8Array(buf);
+      let bin=''; const CHUNK=8192;
+      for(let i=0;i<bytes.length;i+=CHUNK) bin+=String.fromCharCode(...bytes.subarray(i,i+CHUNK));
+      const b64=btoa(bin);
+      const name='POD_'+document.getElementById('f-order').value+'_'+Date.now()+'.'+( currentFile.name.split('.').pop()||'jpg');
+      const driveFile=await driveUpload(b64, currentFile.type||'image/jpeg', name);
+      photoURL=driveFile.webViewLink||'';
+      photoId =driveFile.id||'';
     }
-
-    const result = await callScript({
-      action      : 'savePOD',
-      order       : document.getElementById('f-order').value,
-      client      : document.getElementById('f-client').value,
-      carrier     : document.getElementById('f-carrier').value,
-      qty         : document.getElementById('f-qty').value,
-      date        : document.getElementById('f-date').value,
-      time        : document.getElementById('f-time').value,
-      user        : document.getElementById('f-user').value || 'Operador',
-      photoBase64,
-      photoMime,
-      photoName
-    });
-
-    if (!result.ok) throw new Error(result.error || 'Error desconocido al guardar.');
-    st.className = 'st ok2';
-    st.textContent = '✓ POD guardado en Sheets · Foto en Drive · ' + nowTime();
-    // Esperar 2 segundos para que el usuario vea el éxito, luego limpiar para el próximo POD
-    setTimeout(() => {
-      resetUploadForm();
-      st.className = 'st ok2';
-      st.textContent = '✓ Listo para cargar otro POD';
-      setTimeout(() => { st.textContent = ''; st.className = 'st'; }, 3000);
-    }, 2000);
-  } catch(err) {
-    st.className = 'st fail';
-    let msg = err.message || 'Error desconocido';
-    if (msg.includes('Failed to fetch') || msg.includes('Load failed'))
-      msg = 'Error de conexión con el servidor. Verifica el Apps Script.';
-    st.textContent = '⚠️ ' + msg;
-    btn.disabled = false;
+    // Guardar en Sheets
+    await sheetsAppend(SHEET_PODS+'!A:K',[[
+      new Date().toISOString(),
+      document.getElementById('f-date').value,
+      document.getElementById('f-time').value,
+      document.getElementById('f-order').value,
+      document.getElementById('f-client').value,
+      document.getElementById('f-carrier').value,
+      document.getElementById('f-qty').value,
+      document.getElementById('f-user').value||'Operador',
+      'Con foto', photoURL, photoId
+    ]]);
+    st.className='st ok2'; st.textContent='✓ POD guardado en Sheets · Foto en Drive · '+nowTime();
+    setTimeout(()=>{ resetForm(); st.className='st ok2'; st.textContent='✓ Listo para cargar otro POD'; },2000);
+  }catch(err){
+    st.className='st fail'; st.textContent='⚠️ '+err.message;
+    btn.disabled=false;
   }
 }
 
-function resetUploadForm() {
-  currentFile = null;
-  // Limpiar input de archivo
-  try {
-    const fileInput = document.getElementById('file-input');
-    fileInput.value = '';
-    // Forzar reset del input creando uno nuevo (necesario en algunos navegadores)
-    const newInput = fileInput.cloneNode(true);
-    newInput.addEventListener('change', function() { handleFile(this); });
-    fileInput.parentNode.replaceChild(newInput, fileInput);
-  } catch(e) {}
-  // Reset zona de carga
-  const zone = document.getElementById('drop-zone');
-  zone.classList.remove('done');
-  document.getElementById('drop-lbl').textContent = 'Haz clic o arrastra la foto del POD';
-  // Reset preview
-  document.getElementById('photo-preview').style.display = 'none';
-  document.getElementById('preview-img').src = '';
-  // Reset campos — todos readonly y vacíos
-  ['f-order','f-client','f-carrier','f-qty','f-date','f-time'].forEach(id => {
-    const el = document.getElementById(id);
-    el.value = '';
-    el.setAttribute('readonly', '');
-    el.style.color = '';
-    el.placeholder = id === 'f-time' ? '' : 'Extraído de la foto...';
+function resetForm(){
+  currentFile=null;
+  const fi=document.getElementById('file-input');
+  const nfi=fi.cloneNode(true); nfi.addEventListener('change',function(){handleFile(this);});
+  fi.parentNode.replaceChild(nfi,fi);
+  document.getElementById('drop-zone').classList.remove('done');
+  document.getElementById('drop-lbl').textContent='Haz clic o arrastra la foto del POD';
+  document.getElementById('photo-preview').style.display='none';
+  document.getElementById('preview-img').src='';
+  ['f-order','f-client','f-carrier','f-qty','f-date','f-time'].forEach(id=>{
+    const el=document.getElementById(id); el.value=''; el.setAttribute('readonly',''); el.placeholder='Extraído de la foto...';
   });
-  document.getElementById('f-status').value = 'Pendiente cruce';
-  document.getElementById('f-user').value = '';
-  document.getElementById('btn-save').disabled = true;
-  // Reset mensaje de estado
-  const st = document.getElementById('ai-st');
-  st.textContent = '';
-  st.className = 'st';
-  // Reset warning banner
-  const w = document.getElementById('apikey-warning');
-  if (w && (getAPIKey() || DEFAULT_API_KEY)) w.style.display = 'none';
+  document.getElementById('f-status').value='Pendiente cruce';
+  document.getElementById('f-user').value='';
+  document.getElementById('btn-save').disabled=true;
+  document.getElementById('btn-reset').style.display='none';
+  document.getElementById('ai-st').textContent=''; document.getElementById('ai-st').className='st';
 }
 
-// ===== SUBIR DB DIARIA =====
-function handleExcel(input) {
-  const file = input.files[0];
-  if (!file) return;
-  document.getElementById('excel-lbl').textContent = file.name;
-  const st = document.getElementById('excel-st');
-  st.className = 'st load'; st.textContent = 'Leyendo archivo...';
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const wb   = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-      const ws   = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-      dbRows = rows.map(r => ({
-        order    : String(r['Order #']||r['order']||r['ORDER']||'').trim(),
-        customer : String(r['Customer']||r['customer']||'').trim(),
-        carrier  : String(r['Carrier']||r['carrier']||'').trim(),
-        date     : String(r['Ship Date']||r['date']||'').trim(),
-        qty      : String(r['Qty']||r['qty']||'').trim(),
-        delivered: String(r['Delivered']||r['delivered']||'').trim()
+// ── DB DIARIA ────────────────────────────────────────────
+function handleExcel(input){
+  const file=input.files[0]; if(!file) return;
+  document.getElementById('excel-lbl').textContent=file.name;
+  const st=document.getElementById('excel-st');
+  st.className='st load'; st.textContent='Leyendo archivo...';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      dbRows=rows.map(r=>({
+        order:String(r['Order #']||r['order']||r['ORDER']||'').trim(),
+        customer:String(r['Customer']||r['customer']||'').trim(),
+        carrier:String(r['Carrier']||r['carrier']||'').trim(),
+        date:String(r['Ship Date']||r['date']||'').trim(),
+        qty:String(r['Qty']||r['qty']||'').trim(),
+        delivered:String(r['Delivered']||r['delivered']||'').trim()
       }));
-      st.className = 'st ok2';
-      st.textContent = `✓ ${dbRows.length} órdenes leídas · ${nowDateTime()}`;
+      st.className='st ok2'; st.textContent='✓ '+dbRows.length+' órdenes leídas';
       document.getElementById('excel-zone').classList.add('done');
       renderDBPreview();
-    } catch(err) {
-      st.className = 'st fail'; st.textContent = 'Error al leer el archivo.';
-    }
+    }catch(e){st.className='st fail'; st.textContent='Error al leer el archivo.';}
   };
   reader.readAsArrayBuffer(file);
 }
 
-function renderDBPreview() {
-  const tbody = document.getElementById('db-tbody');
-  document.getElementById('db-badge').textContent = dbRows.length + ' órdenes';
-  tbody.innerHTML = dbRows.slice(0,10).map(r =>
+function renderDBPreview(){
+  document.getElementById('db-badge').textContent=dbRows.length+' órdenes';
+  document.getElementById('db-tbody').innerHTML=dbRows.slice(0,10).map(r=>
     `<tr><td>${r.order}</td><td>${r.customer}</td><td>${r.carrier}</td><td>${r.date}</td><td>${r.qty}</td><td><span class="badge warn">Pendiente</span></td></tr>`
-  ).join('') + (dbRows.length > 10 ? `<tr><td colspan="6" style="text-align:center;color:var(--tx3);font-size:12px">... y ${dbRows.length-10} más</td></tr>` : '');
-  document.getElementById('db-preview').style.display = 'block';
+  ).join('')+(dbRows.length>10?`<tr><td colspan="6" style="text-align:center;color:var(--tx3);font-size:12px">... y ${dbRows.length-10} más</td></tr>`:'');
+  document.getElementById('db-preview').style.display='block';
 }
 
-async function runCross() {
-  const st = document.getElementById('excel-st');
-  st.className = 'st load'; st.textContent = 'Enviando DB a Sheets y ejecutando cruce...';
-  try {
-    const up = await callScript({ action: 'uploadDB', rows: dbRows });
-    if (!up.ok) throw new Error(up.error);
-    const cr = await callScript({ action: 'crossData' });
-    if (!cr.ok) throw new Error(cr.error);
-    st.className = 'st ok2';
-    st.textContent = `✓ Cruce completado: ${cr.entregados} entregados / ${cr.sinFactura} sin factura · ${nowTime()}`;
-    localStorage.setItem('last_cross', nowTime());
-    const bar = document.getElementById('db-bar');
-    bar.style.display = 'flex';
-    document.getElementById('db-bar-txt').textContent = `Último cruce: ${cr.entregados}/${cr.total} entregados (${cr.pct}%) · ${nowDateTime()}`;
-    refreshDash();
-  } catch(err) {
-    st.className = 'st fail'; st.textContent = 'Error: ' + err.message;
-  }
-}
+async function runCross(){
+  const st=document.getElementById('excel-st');
+  st.className='st load'; st.textContent='Guardando DB en Sheets y ejecutando cruce...';
+  try{
+    // Limpiar pestaña DB_Diaria y escribir nueva
+    await sheetsClear(SHEET_DB+'!A2:H');
+    const values=dbRows.map(r=>[r.order,r.customer,r.carrier,r.date,r.qty,r.delivered,'Sin factura','']);
+    if(values.length>0) await sheetsAppend(SHEET_DB+'!A:H', values);
 
-// ===== DASHBOARD =====
-async function refreshDash() {
-  const loading = document.getElementById('dash-loading');
-  loading.style.display = 'flex';
-  if (!isConfigured()) {
-    loading.innerHTML = '<i class="ti ti-alert-triangle"></i> Configura el Apps Script primero en la pestaña Config.';
-    return;
-  }
-  try {
-    const s = await callScriptGET('getStats');
-    loading.style.display = 'none';
-    if (!s.ok) throw new Error(s.error);
-
-    document.getElementById('m-total').textContent  = s.total;
-    document.getElementById('m-ok').textContent     = s.entregados;
-    document.getElementById('m-no').textContent     = s.sinFactura;
-    document.getElementById('m-pct').textContent    = s.pct + '%';
-    document.getElementById('m-pods').textContent   = s.podsCount;
-    document.getElementById('m-cross').textContent  = localStorage.getItem('last_cross') || '—';
-    document.getElementById('pct-lbl').textContent  = s.pct + '%';
-    document.getElementById('pf').style.width       = s.pct + '%';
-
-    // Carriers
-    const cb = document.getElementById('carriers');
-    const carriers = Object.entries(s.carrierMap || {});
-    cb.innerHTML = carriers.length === 0
-      ? '<span style="color:var(--tx3)">Sin datos aún.</span>'
-      : carriers.map(([name,d]) => {
-          const p = Math.round((d.ok/d.total)*100);
-          const col = p>=80?'#1D9E75':p>=50?'#BA7517':'#E24B4A';
-          return `<div style="margin-bottom:12px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-              <span style="font-size:13px;font-weight:500">${name}</span>
-              <span style="font-size:12px;color:var(--tx2)">${d.ok}/${d.total} (${p}%)</span>
-            </div>
-            <div style="height:6px;border-radius:3px;background:var(--bg2);overflow:hidden">
-              <div style="height:100%;border-radius:3px;width:${p}%;background:${col}"></div>
-            </div>
-          </div>`;
-        }).join('');
-
-    // Gráfico por hora
-    const hourMap = s.hourMap || {};
-    const hours   = Object.keys(hourMap).sort();
-    const counts  = hours.map(h => hourMap[h]);
-    if (hourChart) hourChart.destroy();
-    hourChart = new Chart(document.getElementById('chart-hour'), {
-      type:'bar',
-      data:{ labels: hours.length>0?hours:['Sin datos hoy'], datasets:[{label:'PODs',data:counts.length>0?counts:[0],backgroundColor:'#AFA9EC',borderRadius:4}] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-        scales:{ x:{grid:{display:false},ticks:{font:{size:11},color:'#888780',autoSkip:false}},
-                 y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888780',stepSize:1,precision:0}} } }
+    // Leer PODs registrados
+    const podData=await sheetsGet(SHEET_PODS+'!A:K');
+    const podMap={};
+    for(let i=1;i<podData.length;i++){
+      const key=String(podData[i][3]||'').trim().toUpperCase();
+      if(key) podMap[key]=podData[i][2]||'';
+    }
+    // Cruzar
+    let entregados=0;
+    const updates=dbRows.map(r=>{
+      const key=r.order.toUpperCase();
+      if(podMap[key]!==undefined){ entregados++; return [r.order,r.customer,r.carrier,r.date,r.qty,r.delivered,'Entregado',podMap[key]]; }
+      return [r.order,r.customer,r.carrier,r.date,r.qty,r.delivered,'Sin factura',''];
     });
-  } catch(err) {
-    loading.innerHTML = '<i class="ti ti-alert-circle"></i> Error al cargar datos: ' + err.message;
+    await sheetsClear(SHEET_DB+'!A2:H');
+    if(updates.length>0) await sheetsAppend(SHEET_DB+'!A:H', updates);
+    localStorage.setItem('last_cross',nowTime());
+    st.className='st ok2';
+    st.textContent=`✓ Cruce completado: ${entregados} entregados / ${dbRows.length-entregados} sin factura · ${nowTime()}`;
+    loadDashboard(); switchTab('dashboard');
+  }catch(err){st.className='st fail'; st.textContent='⚠️ '+err.message;}
+}
+
+// ── DASHBOARD ────────────────────────────────────────────
+async function loadDashboard(){
+  const msg=document.getElementById('dash-msg');
+  msg.style.display='flex'; msg.innerHTML='<i class="ti ti-loader"></i> Cargando datos de Google Sheets...';
+  try{
+    const dbData =await sheetsGet(SHEET_DB+'!A:H');
+    const podData=await sheetsGet(SHEET_PODS+'!A:K');
+    const total   =Math.max(dbData.length-1,0);
+    const entregados=dbData.filter((r,i)=>i>0&&r[6]==='Entregado').length;
+    const sinFact =total-entregados;
+    const pods    =Math.max(podData.length-1,0);
+    const pct     =total>0?Math.round((entregados/total)*100):0;
+    document.getElementById('m-total').textContent=total;
+    document.getElementById('m-ok').textContent=entregados;
+    document.getElementById('m-no').textContent=sinFact;
+    document.getElementById('m-pct').textContent=pct+'%';
+    document.getElementById('m-pods').textContent=pods;
+    document.getElementById('m-cross').textContent=localStorage.getItem('last_cross')||'—';
+    document.getElementById('pct-lbl').textContent=pct+'%';
+    document.getElementById('pf').style.width=pct+'%';
+    document.getElementById('sync-badge').className='badge ok';
+    document.getElementById('sync-badge').textContent='Conectado';
+    // Carriers
+    const cm={};
+    for(let i=1;i<dbData.length;i++){
+      const c=dbData[i][2]||'Desconocido'; const ok=dbData[i][6]==='Entregado';
+      if(!cm[c]) cm[c]={total:0,ok:0};
+      cm[c].total++; if(ok) cm[c].ok++;
+    }
+    const cb=document.getElementById('carriers');
+    const cars=Object.entries(cm);
+    cb.innerHTML=cars.length===0?'<span style="color:var(--tx3)">Sin datos aún.</span>':cars.map(([n,d])=>{
+      const p=Math.round((d.ok/d.total)*100);
+      const col=p>=80?'#1D9E75':p>=50?'#BA7517':'#E24B4A';
+      return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;font-weight:500">${n}</span><span style="font-size:12px;color:var(--tx2)">${d.ok}/${d.total} (${p}%)</span></div><div style="height:6px;border-radius:3px;background:var(--bg2);overflow:hidden"><div style="height:100%;border-radius:3px;width:${p}%;background:${col}"></div></div></div>`;
+    }).join('');
+    msg.style.display='none';
+    allPods=podData.slice(1).map(r=>{return {timestamp:r[0],date:r[1],time:r[2],order:r[3],client:r[4],carrier:r[5],qty:r[6],user:r[7],status:r[8],photoURL:r[9]}});
+  }catch(err){
+    msg.innerHTML='<i class="ti ti-alert-circle"></i> Error: '+err.message;
+    document.getElementById('sync-badge').className='badge err';
+    document.getElementById('sync-badge').textContent='Error';
   }
 }
 
-// ===== REGISTROS =====
-async function loadRecords() {
-  const loading = document.getElementById('records-loading');
-  loading.style.display = 'flex';
-  if (!isConfigured()) {
-    loading.style.display = 'none';
-    document.getElementById('records-body').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:2rem">Configura el Apps Script primero.</td></tr>';
-    return;
-  }
-  try {
-    const r = await callScriptGET('getPODs');
-    loading.style.display = 'none';
-    if (!r.ok) throw new Error(r.error);
-    allPods = r.pods || [];
+// ── REGISTROS ────────────────────────────────────────────
+async function loadRecords(){
+  document.getElementById('rec-loading').style.display='flex';
+  try{
+    const data=await sheetsGet(SHEET_PODS+'!A:K');
+    allPods=data.slice(1).map(r=>{return {timestamp:r[0],date:r[1],time:r[2],order:r[3],client:r[4],carrier:r[5],qty:r[6],user:r[7],status:r[8],photoURL:r[9]}});
+    document.getElementById('rec-loading').style.display='none';
     renderRecords();
-  } catch(err) {
-    loading.style.display = 'none';
-    document.getElementById('records-body').innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--tx-err);padding:2rem">Error: ${err.message}</td></tr>`;
+  }catch(err){
+    document.getElementById('rec-loading').innerHTML='<i class="ti ti-alert-circle"></i> Error: '+err.message;
   }
 }
 
-function renderRecords() {
-  const filter   = document.getElementById('filter-st').value;
-  const filtered = filter ? allPods.filter(p => p.status === filter) : allPods;
-  document.getElementById('rec-count').textContent = filtered.length;
-  const tbody = document.getElementById('records-body');
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:2rem">No hay PODs registrados.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = [...filtered].reverse().map(p => {
-    const cls = p.status==='Entregado'?'ok':p.status==='Sin factura'?'err':'warn';
-    const foto = p.photoURL ? `<a href="${p.photoURL}" target="_blank" style="color:var(--purple);font-size:12px"><i class="ti ti-external-link"></i> Ver</a>` : '—';
-    return `<tr>
-      <td style="font-weight:500">${p.order}</td>
-      <td>${p.client}</td><td>${p.carrier}</td><td>${p.date}</td>
-      <td style="color:var(--purple);font-weight:500">${p.time||'—'}</td>
-      <td>${p.qty}</td><td>${p.user||'—'}</td>
-      <td><span class="badge ${cls}">${p.status}</span></td>
-      <td>${foto}</td>
-    </tr>`;
+function renderRecords(){
+  const filter=document.getElementById('filter-st').value;
+  const filtered=filter?allPods.filter(p=>p.status===filter):allPods;
+  document.getElementById('rec-count').textContent=filtered.length;
+  const tbody=document.getElementById('records-body');
+  if(filtered.length===0){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:2rem">No hay PODs.</td></tr>'; return;}
+  tbody.innerHTML=[...filtered].reverse().map(p=>{
+    const cls=p.status==='Entregado'?'ok':p.status==='Sin factura'?'err':'warn';
+    const foto=p.photoURL?`<a href="${p.photoURL}" target="_blank" style="color:var(--purple);font-size:12px"><i class="ti ti-external-link"></i> Ver</a>`:'—';
+    return `<tr><td style="font-weight:500">${p.order}</td><td>${p.client}</td><td>${p.carrier}</td><td>${p.date}</td><td style="color:var(--purple);font-weight:500">${p.time||'—'}</td><td>${p.qty}</td><td>${p.user||'—'}</td><td><span class="badge ${cls}">${p.status}</span></td><td>${foto}</td></tr>`;
   }).join('');
 }
 
-function exportCSV() {
-  if (allPods.length === 0) return alert('No hay PODs cargados.');
-  const h = 'Orden,Cliente,Carrier,Fecha,Hora,Cantidad,Operador,Estado,Foto URL\n';
-  const r = allPods.map(p => [p.order,p.client,p.carrier,p.date,p.time||'',p.qty,p.user||'',p.status,p.photoURL||''].join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([h+r],{type:'text/csv'}));
-  a.download = 'pods_' + new Date().toLocaleDateString('es').replace(/\//g,'-') + '.csv';
-  a.click();
+function exportCSV(){
+  if(allPods.length===0) return alert('No hay PODs.');
+  const h='Orden,Cliente,Carrier,Fecha,Hora,Cantidad,Operador,Estado,Foto\n';
+  const r=allPods.map(p=>[p.order,p.client,p.carrier,p.date,p.time||'',p.qty,p.user||'',p.status,p.photoURL||''].join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+r],{type:'text/csv'}));
+  a.download='pods_'+new Date().toLocaleDateString('es').replace(/\//g,'-')+'.csv'; a.click();
 }
 
-// ===== INIT =====
-document.getElementById('cfg-script').value = CFG.scriptURL || '';
-document.getElementById('cfg-apikey').value = CFG.apiKey    || '';
-// Limpiar mensajes de error de API Key si ya está configurada
-if (CFG.apiKey) {
-  const w = document.getElementById('apikey-warning');
-  if (w) w.style.display = 'none';
-}
-if (CFG.scriptURL && !CFG.apiKey) {
-  const st = document.getElementById('cfg-st');
-  if (st) { st.className = 'st fail'; st.textContent = '⚠️ Falta la API Key. Pégala aquí y guarda.'; }
-}
-updateSyncBadge();
-if (isConfigured()) refreshDash();
-else {
-  document.getElementById('dash-loading').innerHTML = '<i class="ti ti-settings"></i> Configura el Apps Script en la pestaña <b>Config</b> para comenzar.';
-}
+// ── INIT ─────────────────────────────────────────────────
+loadDashboard();
 </script>
 </body>
 </html>
