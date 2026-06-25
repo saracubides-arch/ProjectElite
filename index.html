@@ -352,35 +352,6 @@ async function sheetsUpdate(range, values) {
   return res.json();
 }
 
-async function driveUpload(b64, mime, name) {
-  const token = await getGoogleToken();
-  const binary= atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-
-  const meta = JSON.stringify({name, parents:[DRIVE_FOLDER_ID]});
-  const boundary = 'pods_boundary_' + Date.now();
-  const body = '--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+meta+
-    '\r\n--'+boundary+'\r\nContent-Type: '+mime+'\r\n\r\n';
-  const bodyBytes = new TextEncoder().encode(body);
-  const endBytes  = new TextEncoder().encode('\r\n--'+boundary+'--');
-  const full = new Uint8Array(bodyBytes.length+bytes.length+endBytes.length);
-  full.set(bodyBytes); full.set(bytes,bodyBytes.length); full.set(endBytes,bodyBytes.length+bytes.length);
-
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
-    method:'POST',
-    headers:{Authorization:'Bearer '+token,'Content-Type':'multipart/related; boundary='+boundary},
-    body: full
-  });
-  const data = await res.json();
-  if (data.error) throw new Error('Drive upload: ' + data.error.message);
-  // Make file public
-  await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`,{
-    method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-    body:JSON.stringify({role:'reader',type:'anyone'})
-  });
-  return data;
-}
 
 // ── APP LOGIC ────────────────────────────────────────────
 function switchTab(name) {
@@ -454,21 +425,33 @@ function handleFile(input){
 async function savePOD(){
   const btn=document.getElementById('btn-save');
   const st=document.getElementById('ai-st');
-  btn.disabled=true; st.className='st load'; st.textContent='Subiendo foto a Drive y guardando en Sheets...';
+  btn.disabled=true; st.className='st load'; st.textContent='Guardando en Sheets...';
   try{
-    // Convertir imagen a base64 en chunks (evita stack overflow)
     let photoURL='', photoId='';
-    if(currentFile){
-      const buf=await currentFile.arrayBuffer();
-      const bytes=new Uint8Array(buf);
-      let bin=''; const CHUNK=8192;
-      for(let i=0;i<bytes.length;i+=CHUNK) bin+=String.fromCharCode(...bytes.subarray(i,i+CHUNK));
-      const b64=btoa(bin);
-      const name='POD_'+document.getElementById('f-order').value+'_'+Date.now()+'.'+( currentFile.name.split('.').pop()||'jpg');
-      const driveFile=await driveUpload(b64, currentFile.type||'image/jpeg', name);
-      photoURL=driveFile.webViewLink||'';
-      photoId =driveFile.id||'';
+    // Intentar subir foto si hay PROXY_URL configurado
+    if(currentFile && PROXY_URL){
+      st.textContent='Subiendo foto a Drive...';
+      try{
+        const buf=await currentFile.arrayBuffer();
+        const bytes=new Uint8Array(buf);
+        let bin=''; const CHUNK=8192;
+        for(let i=0;i<bytes.length;i+=CHUNK) bin+=String.fromCharCode(...bytes.subarray(i,i+CHUNK));
+        const b64=btoa(bin);
+        const name='POD_'+document.getElementById('f-order').value+'_'+Date.now()+'.'+( currentFile.name.split('.').pop()||'jpg');
+        const driveRes=await fetch(PROXY_URL,{
+          method:'POST',
+          headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify({action:'uploadPhoto',imageBase64:b64,imageMime:currentFile.type||'image/jpeg',fileName:name}),
+          redirect:'follow'
+        });
+        const driveText=await driveRes.text();
+        if(!driveText.trim().startsWith('<')){
+          const driveData=JSON.parse(driveText);
+          if(driveData.ok){ photoURL=driveData.photoURL||''; photoId=driveData.fileId||''; }
+        }
+      }catch(e){ console.warn('Foto no guardada en Drive:', e.message); }
     }
+    st.textContent='Guardando registro en Sheets...';
     // Guardar en Sheets
     await sheetsAppend(SHEET_PODS+'!A:K',[[
       new Date().toISOString(),
