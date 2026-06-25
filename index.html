@@ -221,6 +221,9 @@ tr:hover td{background:var(--bg2)}
 const SPREADSHEET_ID  = '1AyQfx7EMIqVnJ9SvmR3P9RkYBTqlSVAGQeESqYCJb2M';
 const DRIVE_FOLDER_ID = '17n611a3QQZzfYWmbK27qCsAphhB8zFyx';
 const ANTHROPIC_KEY   = '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';
+// Proxy para Anthropic (solo para extraer datos de fotos — evita CORS)
+// Actualiza esta URL después de publicar el apps_script_proxy.js
+const PROXY_URL = '';  // ← pega aquí la URL del Apps Script proxy
 const CLIENT_EMAIL    = 'eliteflowerpo-978@eliteflowerpo.iam.gserviceaccount.com';
 const PRIVATE_KEY_PEM = `-----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCqAw6VGcjzGqxi
@@ -412,24 +415,23 @@ function handleFile(input){
   reader.onload=async e=>{
     const b64=e.target.result.split(',')[1];
     try{
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
+      // Llamar al proxy de Apps Script (evita CORS de Anthropic)
+      if (!PROXY_URL) throw new Error('Falta la URL del proxy. Configúrala en el código (PROXY_URL).');
+      const res=await fetch(PROXY_URL, {
         method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01'},
+        headers:{'Content-Type':'text/plain'},
         body:JSON.stringify({
-          model:'claude-haiku-4-5-20251001', max_tokens:400,
-          messages:[{role:'user',content:[
-            {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
-            {type:'text',text:'Analiza este POD de entrega de flores. Responde SOLO en JSON sin backticks: {"order_number":"...","client":"...","carrier":"...","quantity":"...","date":"..."}. Si no encuentras un valor usa "No detectado".'}
-          ]}]
-        })
+          action:'extractPOD',
+          imageBase64:b64,
+          imageMime:file.type||'image/jpeg'
+        }),
+        redirect:'follow'
       });
-      if(!res.ok){
-        const err=await res.json();
-        if(res.status===401) throw new Error('API Key inválida. Verifica la configuración.');
-        throw new Error('Error '+res.status+': '+(err.error?.message||''));
-      }
-      const data=await res.json();
-      const parsed=JSON.parse(data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim());
+      const rawText=await res.text();
+      if(rawText.trim().startsWith('<')) throw new Error('El proxy devolvió HTML. Verifica que el Apps Script esté publicado como "Cualquier persona".');
+      const data=JSON.parse(rawText);
+      if(!data.ok) throw new Error(data.error||'Error en el proxy');
+      const parsed=data.result;
       document.getElementById('f-order').value  =parsed.order_number||'No detectado';
       document.getElementById('f-client').value =parsed.client||'No detectado';
       document.getElementById('f-carrier').value=parsed.carrier||'No detectado';
